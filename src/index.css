@@ -1,0 +1,85 @@
+@import 'tailwindcss';
+
+/**
+ * Design tokens.
+ *
+ * The two prototypes had no CSS variables at all — every colour was a hardcoded
+ * hex repeated inline, in two unrelated palettes (retailer orange #FF7E00 with
+ * Plus Jakarta Sans, NGO amber #E7A03C with Poppins). Merging them without tokens
+ * would leave the two halves looking like different products.
+ *
+ * The NGO palette is the newer and more considered of the two, so it is the base.
+ * The retailer orange survives as `retailer-accent` so the store side keeps a
+ * recognisable identity without a second type scale.
+ */
+@theme {
+  --font-sans: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+
+  /* Brand */
+  --color-brand-amber: #e7a03c;
+  --color-brand-amber-hover: #d6902e;
+  --color-brand-brown: #372506;
+  --color-brand-ink: #120c02;
+
+  /* Surfaces and borders */
+  --color-surface-cream: #fdf6ed;
+  --color-surface-offwhite: #fffdf9;
+  --color-border-tan: #d8c7ae;
+
+  /* Retailer accent, carried over from the store-side prototype */
+  --color-retailer-accent: #ff7e00;
+  --color-retailer-accent-hover: #e67200;
+
+  /* Urgency, which the API returns as CRITICAL / EXPIRING / STANDARD */
+  --color-urgency-critical: #dc2626;
+  --color-urgency-expiring: #e7a03c;
+  --color-urgency-standard: #16a34a;
+}
+
+/*
+ * Scoped to `body`, not `*`. The NGO prototype applied its font with a universal
+ * selector, which would have restyled every retailer screen after the merge.
+ */
+body {
+  margin: 0;
+  background-color: #ffffff;
+  color: var(--color-brand-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/*
+ * Both prototypes styled bare ::-webkit-scrollbar with different colours, so
+ * whichever stylesheet loaded last won globally. One definition now.
+ */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-tan);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-brand-brown);
+}
+
+/*
+ * Both prototypes used `scrollbar-hide` / `scrollbar-none` with no plugin backing
+ * them, so the classes were silently inert. Defined once, for real.
+ */
+@utility scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}

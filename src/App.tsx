@@ -1,0 +1,50 @@
+import { Navigate, Route, Routes } from 'react-router-dom';
+
+import { useAuth } from '@/auth/useAuth';
+import { homePathFor } from '@/auth/paths';
+import { RedirectIfSignedIn, RequireSide } from '@/auth/RequireSide';
+import { PortalShell } from '@/components/PortalShell';
+import { LoginPage } from '@/routes/login/LoginPage';
+import { NgoHome } from '@/routes/ngo/NgoHome';
+import { RegisterPage } from '@/routes/register/RegisterPage';
+import { RetailerHome } from '@/routes/retailer/RetailerHome';
+
+/** Sends `/` to whichever side the account belongs to, or to sign-in. */
+function RootRedirect() {
+  const { session, isLoading } = useAuth();
+
+  if (isLoading) {
+    return null;
+  }
+
+  return (
+    <Navigate to={session ? homePathFor(session.side) : '/login'} replace />
+  );
+}
+
+export default function App() {
+  return (
+    <Routes>
+      <Route path="/" element={<RootRedirect />} />
+
+      <Route element={<RedirectIfSignedIn />}>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+      </Route>
+
+      <Route element={<RequireSide side="retailer" />}>
+        <Route path="/retailer" element={<PortalShell />}>
+          <Route index element={<RetailerHome />} />
+        </Route>
+      </Route>
+
+      <Route element={<RequireSide side="ngo" />}>
+        <Route path="/ngo" element={<PortalShell />}>
+          <Route index element={<NgoHome />} />
+        </Route>
+      </Route>
+
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+}
