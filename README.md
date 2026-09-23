@@ -68,6 +68,12 @@ pnpm lint
 
 > The base URL must **not** include `/api` — every generated path already carries it.
 
+> **`.env.local` also applies to `pnpm build`.** Vite ranks it above `.env`, so a
+> machine set up for local development produces a *production bundle pointing at
+> `localhost`* — with no warning, because the value is inlined at build time. Build
+> deployable bundles with the variable set explicitly:
+> `VITE_API_BASE_URL=https://spiraapi.onrender.com pnpm build`.
+
 ## Regenerating the API client
 
 The client is committed so a clone builds without the backend present. After a DTO
@@ -87,5 +93,12 @@ It is excluded from Prettier and from `noUnusedLocals`, and
 ## Status
 
 Auth is wired end to end: sign-in, self-registration for both sides, role-gated
-routes, session from `GET /api/me`, sign-out with server-side revocation. The two
-side homes are placeholders — the prototype screens are ported onto them next.
+routes, session from `GET /api/me`, sign-out with server-side revocation, and a
+rejected token returning to sign-in.
+
+**Retailer:** first-run branch setup and the Inventory screen are ported and
+verified against the deployed API — server-side search, category and urgency
+facets, and cursor paging that appends.
+
+**NGO:** the home is still a placeholder. Its screens are ported next, along with
+the retailer's Home, Donations and Profile.

@@ -2,6 +2,7 @@ import { LogOut } from 'lucide-react';
 import { Outlet, useNavigate } from 'react-router-dom';
 
 import { useAuth } from '@/auth/useAuth';
+import { BottomNav } from '@/components/BottomNav';
 import { SpiraLogo } from '@/components/SpiraLogo';
 
 /**
@@ -43,6 +44,13 @@ export function PortalShell() {
           Your organisation is awaiting verification.
         </p>
       )}
+
+      {/* Hidden until a retailer has a branch — there is nowhere to navigate to
+          before setup, and offering tabs that bounce back reads as a bug. */}
+      {session &&
+        (session.side !== 'retailer' || session.primaryLocationId) && (
+          <BottomNav side={session.side} />
+        )}
     </div>
   );
 }

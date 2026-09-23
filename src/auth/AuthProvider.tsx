@@ -1,5 +1,11 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useEffect, useMemo, type ReactNode } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useSyncExternalStore,
+  type ReactNode,
+} from 'react';
 
 import { AuthContext, type AuthContextValue } from '@/auth/auth-context';
 import {
@@ -8,7 +14,7 @@ import {
   sessionQueryKey,
 } from '@/features/auth/_logic';
 import { setUnauthorizedHandler } from '@/lib/axios';
-import { getToken } from '@/lib/token-storage';
+import { getTokenSnapshot, subscribeToToken } from '@/lib/token-storage';
 
 /**
  * Holds the session for the whole app.
@@ -21,12 +27,21 @@ import { getToken } from '@/lib/token-storage';
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
 
+  // Subscribed rather than read directly: clearing the token on a 401 has to
+  // re-render the guards, or they stay on whatever they last decided — which left
+  // a rejected token showing "Loading your account…" forever.
+  const token = useSyncExternalStore(
+    subscribeToToken,
+    getTokenSnapshot,
+    () => null,
+  );
+
   const { data, isPending, error, refetch } = useQuery({
     queryKey: sessionQueryKey,
     queryFn: getSession,
     // Only ask for a session when there is a token to exchange. Without this the
     // sign-in page would fire a request it knows will 401.
-    enabled: getToken() !== null,
+    enabled: token !== null,
     retry: false,
     staleTime: 5 * 60 * 1000,
   });
@@ -55,14 +70,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const value = useMemo<AuthContextValue>(
     () => ({
       session: data ?? null,
-      // A missing token is not "loading" — it is a known signed-out state.
-      isLoading: getToken() !== null && isPending,
+      // A missing token is not "loading" — it is a known signed-out state. The
+      // distinction matters because `isPending` is also true for a query that is
+      // disabled and has never run.
+      isLoading: token !== null && isPending,
       error: error as Error | null,
       refresh,
       signOut,
       adoptSession,
     }),
-    [data, isPending, error, refresh, signOut, adoptSession],
+    [data, isPending, error, token, refresh, signOut, adoptSession],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
