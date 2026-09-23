@@ -1,4 +1,5 @@
-import { LogOut } from 'lucide-react';
+import { Loader2, LogOut } from 'lucide-react';
+import { useState } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 
 import { useAuth } from '@/auth/useAuth';
@@ -15,8 +16,16 @@ import { SpiraLogo } from '@/components/SpiraLogo';
 export function PortalShell() {
   const { session, signOut } = useAuth();
   const navigate = useNavigate();
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
+  // Guarded against a second click: the first request revokes the token, so the
+  // second would be answered 401 by the denylist.
   const handleSignOut = async () => {
+    if (isSigningOut) {
+      return;
+    }
+
+    setIsSigningOut(true);
     await signOut();
     navigate('/login', { replace: true });
   };
@@ -27,10 +36,15 @@ export function PortalShell() {
         <SpiraLogo size="sm" />
         <button
           onClick={handleSignOut}
-          className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs text-brand-brown/70 transition hover:bg-surface-cream"
+          disabled={isSigningOut}
+          className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs text-brand-brown/70 transition hover:bg-surface-cream disabled:opacity-60"
           aria-label="Sign out"
         >
-          <LogOut className="h-3.5 w-3.5" />
+          {isSigningOut ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <LogOut className="h-3.5 w-3.5" />
+          )}
           Sign out
         </button>
       </header>

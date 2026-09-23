@@ -69,7 +69,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<AuthContextValue>(
     () => ({
-      session: data ?? null,
+      // The token decides whether there is a session, not the query cache.
+      // `queryClient.clear()` does not reset an already-mounted observer's `data`,
+      // so after signing out the cache still handed back the old account and the
+      // signed-in guard bounced /login straight back to the portal.
+      session: token === null ? null : (data ?? null),
       // A missing token is not "loading" — it is a known signed-out state. The
       // distinction matters because `isPending` is also true for a query that is
       // disabled and has never run.
