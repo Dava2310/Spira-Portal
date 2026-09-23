@@ -813,7 +813,7 @@ export const DonationsApiAxiosParamCreator = function (configuration?: Configura
          * @summary Search and page donations
          * @param {number} [limit] How many records to return. Defaults to 25.
          * @param {string} [cursor] Opaque cursor from the previous page’s &#x60;meta.nextCursor&#x60;. Omit for the first page.
-         * @param {DonationStatus} [status] Narrow to one lifecycle state.
+         * @param {Array<DonationStatus>} [status] Narrow to one or more lifecycle states. Repeat the parameter or give a comma-separated list — the retailer queue is several states at once, since a batch being staged, offered and awaiting collection is one list to the shop.
          * @param {DonationOrigin} [origin] Narrow to one side having started it.
          * @param {string} [locationId] Narrow to one branch.
          * @param {string} [recipientId] Narrow to one recipient.
@@ -823,7 +823,7 @@ export const DonationsApiAxiosParamCreator = function (configuration?: Configura
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        donationsControllerSearch: async (limit?: number, cursor?: string, status?: DonationStatus, origin?: DonationOrigin, locationId?: string, recipientId?: string, from?: string, to?: string, sort?: DonationSort, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        donationsControllerSearch: async (limit?: number, cursor?: string, status?: Array<DonationStatus>, origin?: DonationOrigin, locationId?: string, recipientId?: string, from?: string, to?: string, sort?: DonationSort, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             const localVarPath = `/api/donations`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -848,7 +848,7 @@ export const DonationsApiAxiosParamCreator = function (configuration?: Configura
                 localVarQueryParameter['cursor'] = cursor;
             }
 
-            if (status !== undefined) {
+            if (status) {
                 localVarQueryParameter['status'] = status;
             }
 
@@ -1233,7 +1233,7 @@ export const DonationsApiFp = function(configuration?: Configuration) {
          * @summary Search and page donations
          * @param {number} [limit] How many records to return. Defaults to 25.
          * @param {string} [cursor] Opaque cursor from the previous page’s &#x60;meta.nextCursor&#x60;. Omit for the first page.
-         * @param {DonationStatus} [status] Narrow to one lifecycle state.
+         * @param {Array<DonationStatus>} [status] Narrow to one or more lifecycle states. Repeat the parameter or give a comma-separated list — the retailer queue is several states at once, since a batch being staged, offered and awaiting collection is one list to the shop.
          * @param {DonationOrigin} [origin] Narrow to one side having started it.
          * @param {string} [locationId] Narrow to one branch.
          * @param {string} [recipientId] Narrow to one recipient.
@@ -1243,7 +1243,7 @@ export const DonationsApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async donationsControllerSearch(limit?: number, cursor?: string, status?: DonationStatus, origin?: DonationOrigin, locationId?: string, recipientId?: string, from?: string, to?: string, sort?: DonationSort, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<DonationsControllerSearch200Response>> {
+        async donationsControllerSearch(limit?: number, cursor?: string, status?: Array<DonationStatus>, origin?: DonationOrigin, locationId?: string, recipientId?: string, from?: string, to?: string, sort?: DonationSort, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<DonationsControllerSearch200Response>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.donationsControllerSearch(limit, cursor, status, origin, locationId, recipientId, from, to, sort, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['DonationsApi.donationsControllerSearch']?.[localVarOperationServerIndex]?.url;
@@ -2053,11 +2053,11 @@ export interface DonationsApiDonationsControllerSearchRequest {
     readonly cursor?: string
 
     /**
-     * Narrow to one lifecycle state.
-     * @type {DonationStatus}
+     * Narrow to one or more lifecycle states. Repeat the parameter or give a comma-separated list — the retailer queue is several states at once, since a batch being staged, offered and awaiting collection is one list to the shop.
+     * @type {Array<DonationStatus>}
      * @memberof DonationsApiDonationsControllerSearch
      */
-    readonly status?: DonationStatus
+    readonly status?: Array<DonationStatus>
 
     /**
      * Narrow to one side having started it.

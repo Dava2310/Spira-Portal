@@ -58,6 +58,13 @@ export interface LotFilters {
   urgency?: SurplusUrgency;
   status?: InventoryItemStatus;
   isListed?: boolean;
+
+  /** Narrow to lots expiring inside this many hours. */
+  expiringWithinHours?: number;
+
+  /** Narrow to lots expiring inside this many days. */
+  expiringWithinDays?: number;
+
   sort?: InventoryItemSort;
   limit?: number;
 }
@@ -185,6 +192,8 @@ export const getLots = async (
         urgency: filters.urgency,
         status: filters.status,
         isListed: filters.isListed,
+        expiringWithinHours: filters.expiringWithinHours,
+        expiringWithinDays: filters.expiringWithinDays,
         sort: filters.sort,
         limit: filters.limit,
         cursor,

@@ -1,4 +1,4 @@
-import { Home, Package, type LucideIcon } from 'lucide-react';
+import { Gift, Home, Package, type LucideIcon } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 
 import type { PortalSide } from '@/features/auth/_logic';
@@ -19,6 +19,7 @@ const ITEMS: Record<PortalSide, NavItem[]> = {
   retailer: [
     { to: '/retailer', label: 'Home', icon: Home },
     { to: '/retailer/inventory', label: 'Inventory', icon: Package },
+    { to: '/retailer/donations', label: 'Donations', icon: Gift },
   ],
   ngo: [{ to: '/ngo', label: 'Home', icon: Home }],
   admin: [

@@ -18,13 +18,22 @@
 import type { CancellationReasonCode } from './cancellation-reason-code';
 // May contain unused imports in some cases
 // @ts-ignore
+import type { DonationDriverDto } from './donation-driver-dto';
+// May contain unused imports in some cases
+// @ts-ignore
 import type { DonationLineResponseDto } from './donation-line-response-dto';
 // May contain unused imports in some cases
 // @ts-ignore
 import type { DonationOrigin } from './donation-origin';
 // May contain unused imports in some cases
 // @ts-ignore
+import type { DonationRecipientDto } from './donation-recipient-dto';
+// May contain unused imports in some cases
+// @ts-ignore
 import type { DonationStatus } from './donation-status';
+// May contain unused imports in some cases
+// @ts-ignore
+import type { DonationVehicleDto } from './donation-vehicle-dto';
 
 /**
  * 
@@ -224,6 +233,36 @@ export interface DonationResponseDto {
      * @memberof DonationResponseDto
      */
     'cancelledByUserId'?: string | null;
+    /**
+     * The receiving organization, when the relation was loaded.
+     * @type {DonationRecipientDto}
+     * @memberof DonationResponseDto
+     */
+    'recipient'?: DonationRecipientDto | null;
+    /**
+     * The collecting vehicle, when one is assigned and loaded.
+     * @type {DonationVehicleDto}
+     * @memberof DonationResponseDto
+     */
+    'vehicle'?: DonationVehicleDto | null;
+    /**
+     * The driver collecting, when one is named and loaded.
+     * @type {DonationDriverDto}
+     * @memberof DonationResponseDto
+     */
+    'driver'?: DonationDriverDto | null;
+    /**
+     * Label of the branch collected from, when it was loaded.
+     * @type {string}
+     * @memberof DonationResponseDto
+     */
+    'locationLabel'?: string | null;
+    /**
+     * The collection window in the branch\'s own timezone, such as `Today, 18:00 - 20:00`. Null until a window is agreed, or when the branch was not loaded.
+     * @type {string}
+     * @memberof DonationResponseDto
+     */
+    'pickupWindowLabel'?: string | null;
     /**
      * The lines, when they were loaded with the donation.
      * @type {Array<DonationLineResponseDto>}

@@ -8,6 +8,7 @@ import { LoginPage } from '@/routes/login/LoginPage';
 import { RequireBranch } from '@/routes/retailer/RequireBranch';
 import { BranchSetupPage } from '@/routes/retailer/BranchSetupPage';
 import { InventoryPage } from '@/routes/retailer/InventoryPage';
+import { DonationsPage } from '@/routes/retailer/DonationsPage';
 import { NgoHome } from '@/routes/ngo/NgoHome';
 import { RegisterPage } from '@/routes/register/RegisterPage';
 import { RetailerHome } from '@/routes/retailer/RetailerHome';
@@ -41,6 +42,7 @@ export default function App() {
           <Route element={<RequireBranch />}>
             <Route index element={<RetailerHome />} />
             <Route path="inventory" element={<InventoryPage />} />
+            <Route path="donations" element={<DonationsPage />} />
           </Route>
         </Route>
       </Route>
