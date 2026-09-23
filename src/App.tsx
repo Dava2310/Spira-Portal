@@ -10,6 +10,8 @@ import { BranchSetupPage } from '@/routes/retailer/BranchSetupPage';
 import { InventoryPage } from '@/routes/retailer/InventoryPage';
 import { DonationsPage } from '@/routes/retailer/DonationsPage';
 import { NgoHome } from '@/routes/ngo/NgoHome';
+import { ShelfPage } from '@/routes/ngo/ShelfPage';
+import { StorePage } from '@/routes/ngo/StorePage';
 import { RegisterPage } from '@/routes/register/RegisterPage';
 import { RetailerHome } from '@/routes/retailer/RetailerHome';
 
@@ -50,6 +52,8 @@ export default function App() {
       <Route element={<RequireSide side="ngo" />}>
         <Route path="/ngo" element={<PortalShell />}>
           <Route index element={<NgoHome />} />
+          <Route path="shelf" element={<ShelfPage />} />
+          <Route path="shelf/:locationId" element={<StorePage />} />
         </Route>
       </Route>
 

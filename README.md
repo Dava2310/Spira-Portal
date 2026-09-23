@@ -100,5 +100,10 @@ rejected token returning to sign-in.
 verified against the deployed API — server-side search, category and urgency
 facets, and cursor paging that appends.
 
-**NGO:** the home is still a placeholder. Its screens are ported next, along with
-the retailer's Home, Donations and Profile.
+**NGO:** claims with the handover pass, and the surplus shelf with the claim flow,
+are ported and verified against the deployed API. The pass renders a *real* QR
+encoding of the pickup token — the prototype's was a decorative pattern derived from
+the code's characters and would never have scanned.
+
+Still to port: the retailer's Profile, and the NGO's collection history, store map
+and profile.
