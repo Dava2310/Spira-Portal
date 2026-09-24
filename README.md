@@ -110,4 +110,8 @@ Distances work end to end: a branch pins its coordinates during setup, an NGO sa
 a collection base, and the shelf measures between them. Either side can use the
 browser's position instead of typing coordinates.
 
-Still to port: the retailer's Profile, and the NGO's store map.
+**Retailer profile** shows the branch, its period impact report, and who collects
+from it — with plain warnings when the branch has published no collection windows or
+is not pinned on the map, since both silently cost it collections.
+
+Still to port: the NGO's store map.

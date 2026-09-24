@@ -28,6 +28,7 @@ const ITEMS: Record<PortalSide, NavItem[]> = {
     { to: '/retailer', label: 'Home', icon: Home },
     { to: '/retailer/inventory', label: 'Inventory', icon: Package },
     { to: '/retailer/donations', label: 'Donations', icon: Gift },
+    { to: '/retailer/profile', label: 'Profile', icon: UserCircle },
   ],
   ngo: [
     { to: '/ngo', label: 'Claims', icon: Home },

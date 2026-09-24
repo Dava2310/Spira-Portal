@@ -32,6 +32,9 @@ export interface ReservationVM {
   /** Already formatted by the API, in the store's own timezone. */
   pickupWindowLabel: string | null;
 
+  /** Kept so a window that has already closed can be told apart from a future one. */
+  pickupWindowEnd: Date | null;
+
   lineCount: number;
   totalWeightKg: number;
   totalRetailValue: number;
@@ -150,6 +153,7 @@ export const toReservationVM = (
   storeContactName: dto.storeContactName ?? null,
   storePhone: dto.storePhone ?? null,
   pickupWindowLabel: dto.pickupWindowLabel ?? null,
+  pickupWindowEnd: dto.pickupWindowEnd ? new Date(dto.pickupWindowEnd) : null,
   lineCount: dto.lineCount,
   totalWeightKg: dto.totalWeightKg,
   totalRetailValue: dto.totalRetailValue,
@@ -170,10 +174,55 @@ export const toReservationVM = (
   createdAt: new Date(dto.createdAt),
 });
 
+/**
+ * The states a claim is finished in, one way or another.
+ *
+ * A delivered claim belongs in the collection history, not in the list of things
+ * still to collect — the API's reservation list returns every state, so this is
+ * where the two are told apart.
+ */
+export const SETTLED_STATUSES: DonationStatus[] = [
+  DonationStatus.Delivered,
+  DonationStatus.Cancelled,
+  DonationStatus.Declined,
+];
+
+/**
+ * Words when a claim is due.
+ *
+ * The API sorts a window into today's or a later one, but a window that has already
+ * closed still comes back as `UPCOMING`, and showing yesterday evening as "Upcoming"
+ * hides exactly the claim someone needs to chase.
+ * @param reservation The claim to describe.
+ * @returns `Overdue`, `Today` or `Upcoming`.
+ */
+export function dueLabel(reservation: ReservationVM): string {
+  if (reservation.pickupWindowEnd && reservation.pickupWindowEnd < new Date()) {
+    return 'Overdue';
+  }
+
+  return reservation.window === ReservationWindow.Today ? 'Today' : 'Upcoming';
+}
+
+/**
+ * Whether a claim still needs collecting.
+ * @param reservation The claim to test.
+ * @returns True while it is still outstanding.
+ */
+export const isOutstanding = (reservation: ReservationVM): boolean =>
+  !SETTLED_STATUSES.includes(reservation.status);
+
 // --- 3. API CALLS ---
 
-export const reservationsQueryKey = (window?: ReservationWindow) =>
-  ['reservations', window ?? 'all'] as const;
+export const reservationsQueryKey = (
+  window?: ReservationWindow,
+  outstandingOnly = false,
+) =>
+  [
+    'reservations',
+    window ?? 'all',
+    outstandingOnly ? 'outstanding' : 'every',
+  ] as const;
 
 export const reservationQueryKey = (id: string) =>
   ['reservations', 'one', id] as const;
@@ -183,10 +232,12 @@ export const reservationCountsQueryKey = ['reservations', 'counts'] as const;
 /**
  * Lists the caller's claims.
  * @param window Narrow to today's or the upcoming ones.
+ * @param outstandingOnly Drop the ones already delivered, cancelled or declined.
  * @returns A Promise that resolves with the claims.
  */
 export const getReservations = async (
   window?: ReservationWindow,
+  outstandingOnly = false,
 ): Promise<ReservationVM[]> => {
   try {
     const response =
@@ -201,7 +252,9 @@ export const getReservations = async (
       data: ReservationResponseDto[];
     };
 
-    return body.data.map(toReservationVM);
+    const all = body.data.map(toReservationVM);
+
+    return outstandingOnly ? all.filter(isOutstanding) : all;
   } catch (error) {
     throwError(error, 'Could not load your claims.');
   }

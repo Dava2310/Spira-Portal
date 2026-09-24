@@ -1,4 +1,5 @@
 import type {
+  LocationResponseDto,
   MeResponseDto,
   RecipientResponseDto,
   RegisterRecipientDto,
@@ -42,6 +43,15 @@ export interface SessionVM {
 
   /** The branch the retailer app treats as the current store. */
   primaryLocationId: string | null;
+
+  /**
+   * That branch in full, which `GET /api/me` already returns.
+   *
+   * Kept rather than reduced to its id: the profile screen needs its address,
+   * collection windows and coordinates, and re-fetching what the session already
+   * carried would be a request for nothing.
+   */
+  primaryLocation: LocationResponseDto | null;
 
   /** Named contact for the organization, shown on handover screens. */
   primaryContactName: string | null;
@@ -96,6 +106,7 @@ export const toSessionVM = (dto: MeResponseDto): SessionVM => {
       null,
     isVerified: (retailer ?? recipient)?.isVerified ?? false,
     primaryLocationId: dto.primaryLocation?.id ?? null,
+    primaryLocation: dto.primaryLocation ?? null,
     primaryContactName: dto.primaryContactName ?? null,
     impact: dto.impact,
   };

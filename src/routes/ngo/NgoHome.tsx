@@ -11,10 +11,11 @@ import {
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
-import { CancellationReasonCode, ReservationWindow } from '@/api-client';
+import { CancellationReasonCode } from '@/api-client';
 import { useAuth } from '@/auth/useAuth';
 import { PickupPass } from '@/components/PickupPass';
 import {
+  dueLabel,
   getReservations,
   releaseReservation,
   RELEASE_REASONS,
@@ -33,9 +34,10 @@ export function NgoHome() {
   const { session } = useAuth();
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
+  // Outstanding only: a delivered claim belongs under Collected, not here.
   const claims = useQuery({
-    queryKey: reservationsQueryKey(),
-    queryFn: () => getReservations(),
+    queryKey: reservationsQueryKey(undefined, true),
+    queryFn: () => getReservations(undefined, true),
   });
 
   const list = claims.data ?? [];
@@ -126,6 +128,7 @@ export function NgoHome() {
 
 function ClaimDetail({ claim }: { claim: ReservationVM }) {
   const [releasing, setReleasing] = useState(false);
+  const due = dueLabel(claim);
 
   return (
     <div className="space-y-3">
@@ -140,8 +143,14 @@ function ClaimDetail({ claim }: { claim: ReservationVM }) {
               {claim.storeLabel}
             </p>
           </div>
-          <span className="shrink-0 rounded-full border border-border-tan bg-surface-cream px-2 py-0.5 text-[10px] font-semibold text-brand-brown/70">
-            {claim.window === ReservationWindow.Today ? 'Today' : 'Upcoming'}
+          <span
+            className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${
+              due === 'Overdue'
+                ? 'border-urgency-critical/40 bg-urgency-critical/10 text-urgency-critical'
+                : 'border-border-tan bg-surface-cream text-brand-brown/70'
+            }`}
+          >
+            {due}
           </span>
         </div>
 
