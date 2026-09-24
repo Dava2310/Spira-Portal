@@ -18,6 +18,9 @@
 import type { DonationReason } from './donation-reason';
 // May contain unused imports in some cases
 // @ts-ignore
+import type { ExpiryKind } from './expiry-kind';
+// May contain unused imports in some cases
+// @ts-ignore
 import type { UnitOfMeasure } from './unit-of-measure';
 
 /**
@@ -98,6 +101,12 @@ export interface CreateInventoryItemDto {
      * @memberof CreateInventoryItemDto
      */
     'expiresAt'?: string;
+    /**
+     * Which kind of date `expiresAt` is, and required whenever one is given. `BEST_BEFORE` is a quality date and the lot stays donatable after it passes; `USE_BY` is a safety date and the lot leaves the shelf. Read it off the pack rather than guessing — the two are not interchangeable in law.
+     * @type {ExpiryKind}
+     * @memberof CreateInventoryItemDto
+     */
+    'expiryKind'?: ExpiryKind;
     /**
      * Why the lot is donatable rather than sellable.
      * @type {DonationReason}

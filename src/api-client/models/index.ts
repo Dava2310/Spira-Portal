@@ -37,6 +37,7 @@ export * from './donation-sort';
 export * from './donation-status';
 export * from './donation-vehicle-dto';
 export * from './donations-controller-search200-response';
+export * from './expiry-kind';
 export * from './impact-factor-created-response-dto';
 export * from './impact-factor-response-dto';
 export * from './impact-factor-summary-dto';

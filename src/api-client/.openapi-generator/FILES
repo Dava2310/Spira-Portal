@@ -66,6 +66,7 @@ docs/DonationStatus.md
 docs/DonationVehicleDto.md
 docs/DonationsApi.md
 docs/DonationsControllerSearch200Response.md
+docs/ExpiryKind.md
 docs/HealthApi.md
 docs/ImpactFactorCreatedResponseDto.md
 docs/ImpactFactorResponseDto.md
@@ -208,6 +209,7 @@ models/donation-sort.ts
 models/donation-status.ts
 models/donation-vehicle-dto.ts
 models/donations-controller-search200-response.ts
+models/expiry-kind.ts
 models/impact-factor-created-response-dto.ts
 models/impact-factor-response-dto.ts
 models/impact-factor-summary-dto.ts

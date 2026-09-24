@@ -18,6 +18,9 @@
 import type { DonationReason } from './donation-reason';
 // May contain unused imports in some cases
 // @ts-ignore
+import type { ExpiryKind } from './expiry-kind';
+// May contain unused imports in some cases
+// @ts-ignore
 import type { InventoryItemProductDto } from './inventory-item-product-dto';
 // May contain unused imports in some cases
 // @ts-ignore
@@ -119,6 +122,18 @@ export interface InventoryItemResponseDto {
      * @memberof InventoryItemResponseDto
      */
     'expiresAt'?: string | null;
+    /**
+     * Which kind of date `expiresAt` is. Best-before is a quality date and the lot stays donatable past it; use-by is a safety date and the lot does not.
+     * @type {ExpiryKind}
+     * @memberof InventoryItemResponseDto
+     */
+    'expiryKind'?: ExpiryKind | null;
+    /**
+     * True once a use-by date has passed, in which case the lot may no longer be offered or collected. Always false for a best-before lot, however long ago it passed.
+     * @type {boolean}
+     * @memberof InventoryItemResponseDto
+     */
+    'isPastUseBy': boolean;
     /**
      * Hours until expiry, derived rather than stored. Negative once past, null when there is no expiry.
      * @type {number}

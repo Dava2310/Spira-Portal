@@ -11,6 +11,7 @@ import { useAuth } from '@/auth/useAuth';
 import { UrgencyBadge } from '@/components/UrgencyBadge';
 import {
   CATEGORY_LABELS,
+  EXPIRY_KIND_LABELS,
   expiryPhrase,
   facetsQueryKey,
   getFacets,
@@ -247,7 +248,18 @@ function LotRow({ lot }: { lot: LotVM }) {
 
         <p className="mt-1 flex flex-wrap items-center gap-x-2 text-[11px] text-brand-brown/60">
           <span>{REASON_LABELS[lot.reason]}</span>
-          {phrase && <span>· {phrase}</span>}
+          {lot.expiryKind && (
+            <span>· {EXPIRY_KIND_LABELS[lot.expiryKind]}</span>
+          )}
+          {phrase && (
+            <span
+              className={
+                lot.isPastUseBy ? 'font-semibold text-urgency-critical' : ''
+              }
+            >
+              · {phrase}
+            </span>
+          )}
           {lot.isListed && (
             <span className="rounded bg-brand-amber/20 px-1.5 py-0.5 font-medium text-brand-brown">
               on the shelf

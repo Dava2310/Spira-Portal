@@ -18,6 +18,9 @@
 import type { DonationReason } from './donation-reason';
 // May contain unused imports in some cases
 // @ts-ignore
+import type { ExpiryKind } from './expiry-kind';
+// May contain unused imports in some cases
+// @ts-ignore
 import type { ProductCategory } from './product-category';
 // May contain unused imports in some cases
 // @ts-ignore
@@ -116,6 +119,12 @@ export interface DonationLineResponseDto {
      * @memberof DonationLineResponseDto
      */
     'expiresAt'?: string | null;
+    /**
+     * Which kind of date `expiresAt` was, as snapshotted at handover. Best-before is a quality date; use-by is a safety one.
+     * @type {ExpiryKind}
+     * @memberof DonationLineResponseDto
+     */
+    'expiryKind'?: ExpiryKind | null;
     /**
      * Hours until expiry, derived rather than stored.
      * @type {number}

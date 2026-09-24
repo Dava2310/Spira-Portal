@@ -14,6 +14,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { InventoryItemStatus } from '@/api-client';
 import { UrgencyBadge } from '@/components/UrgencyBadge';
 import {
+  EXPIRY_KIND_LABELS,
   expiryPhrase,
   getLots,
   lotsQueryKey,
@@ -288,6 +289,7 @@ function LotChoice({
 
           <span className="mt-1 block text-[11px] text-brand-brown/60">
             {REASON_LABELS[lot.reason]}
+            {lot.expiryKind && ` · ${EXPIRY_KIND_LABELS[lot.expiryKind]}`}
             {phrase && ` · ${phrase}`}
           </span>
         </span>

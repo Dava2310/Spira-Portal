@@ -4,6 +4,7 @@ import type {
 } from '@/api-client';
 import {
   DonationReason,
+  ExpiryKind,
   InventoryItemSort,
   InventoryItemStatus,
   ProductCategory,
@@ -32,6 +33,15 @@ export interface LotVM {
 
   /** Parsed, so screens can sort and compare without re-parsing strings. */
   expiresAt: Date | null;
+
+  /** Which kind of date `expiresAt` is. Null only when there is no expiry. */
+  expiryKind: ExpiryKind | null;
+
+  /**
+   * True once a use-by date has passed, which closes the lot: it may no longer be
+   * donated. Always false for a best-before lot, however long ago it passed.
+   */
+  isPastUseBy: boolean;
 
   /** Straight from the API — derived server-side so every client agrees. */
   urgency: SurplusUrgency | null;
@@ -99,6 +109,8 @@ export const toLotVM = (dto: InventoryItemResponseDto): LotVM => ({
   isListed: dto.isListed,
   imageUrl: dto.displayImageUrl ?? null,
   expiresAt: dto.expiresAt ? new Date(dto.expiresAt) : null,
+  expiryKind: dto.expiryKind ?? null,
+  isPastUseBy: dto.isPastUseBy,
   urgency: dto.urgency ?? null,
   hoursRemaining: dto.hoursRemaining ?? null,
   daysRemaining: dto.daysRemaining ?? null,
@@ -127,8 +139,18 @@ export const CATEGORY_LABELS: Record<ProductCategory, string> = {
   [ProductCategory.Prepared]: 'Prepared',
 };
 
+/** How each kind of date is worded. The distinction is legal, so it is spelled out. */
+export const EXPIRY_KIND_LABELS: Record<ExpiryKind, string> = {
+  [ExpiryKind.BestBefore]: 'Best before',
+  [ExpiryKind.UseBy]: 'Use by',
+};
+
 /**
  * Turns hours remaining into the short phrase the lists show.
+ *
+ * A passed use-by reads differently from a passed best-before, because they mean
+ * different things: one is food that must not be given away, the other is food that
+ * still can be.
  * @param lot The lot to describe.
  * @returns A phrase, or null when the lot has no expiry.
  */
@@ -137,8 +159,14 @@ export function expiryPhrase(lot: LotVM): string | null {
     return null;
   }
 
+  if (lot.isPastUseBy) {
+    return 'Past use-by — cannot be donated';
+  }
+
   if (lot.hoursRemaining < 0) {
-    return 'Expired';
+    return lot.expiryKind === ExpiryKind.BestBefore
+      ? 'Past best-before'
+      : 'Expired';
   }
 
   if (lot.hoursRemaining < 24) {
