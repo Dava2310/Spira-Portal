@@ -1,10 +1,11 @@
 import { useMutation } from '@tanstack/react-query';
-import { Loader2, Store } from 'lucide-react';
+import { Crosshair, Loader2, Store } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { useAuth } from '@/auth/useAuth';
 import { createRetailerBranch } from '@/features/locations/_logic';
+import { findCurrentPosition } from '@/features/shelf/_logic';
 
 const field =
   'mt-1 w-full rounded-xl border border-border-tan px-3 py-2.5 text-sm text-brand-ink outline-none focus:border-brand-amber';
@@ -34,6 +35,16 @@ export function BranchSetupPage() {
   const [postalCode, setPostalCode] = useState('');
   const [countryCode, setCountryCode] = useState('ES');
   const [accessInstructions, setAccessInstructions] = useState('');
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(
+    null,
+  );
+  const [locating, setLocating] = useState(false);
+
+  const locate = async () => {
+    setLocating(true);
+    setCoords(await findCurrentPosition());
+    setLocating(false);
+  };
 
   const { mutate, isPending, error } = useMutation({
     mutationFn: async () => {
@@ -52,6 +63,8 @@ export function BranchSetupPage() {
         countryCode: countryCode.toUpperCase(),
         timezone: browserTimezone,
         accessInstructions: accessInstructions || undefined,
+        latitude: coords?.lat,
+        longitude: coords?.lng,
         isPrimary: true,
       });
     },
@@ -168,6 +181,27 @@ export function BranchSetupPage() {
             className={field}
           />
         </label>
+
+        <button
+          type="button"
+          onClick={() => void locate()}
+          disabled={locating}
+          className="mt-3 flex items-center gap-1.5 rounded-lg border border-border-tan px-2.5 py-1.5 text-[11px] font-semibold text-brand-brown transition hover:bg-surface-cream disabled:opacity-60"
+        >
+          {locating ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Crosshair className="h-3.5 w-3.5" />
+          )}
+          {coords
+            ? `Location pinned (${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)})`
+            : 'Pin this branch on the map'}
+        </button>
+        <p className="mt-1 text-[11px] leading-relaxed text-brand-brown/60">
+          Do this while standing at the branch. Without it, foodbanks searching
+          nearby cannot see how far away you are — and distance is how they
+          decide whether the trip is worth it.
+        </p>
 
         <p className="mt-2 text-[11px] text-brand-brown/60">
           Timezone set from your browser: {browserTimezone}

@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import {
+  Crosshair,
   Loader2,
   MapPin,
   PackageSearch,
@@ -9,11 +10,16 @@ import {
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 
-import { ProductCategory, SurplusUrgency } from '@/api-client';
+import {
+  ProductCategory,
+  SurplusPackageSort,
+  SurplusUrgency,
+} from '@/api-client';
 import { UrgencyBadge } from '@/components/UrgencyBadge';
 import { CATEGORY_LABELS } from '@/features/inventory/_logic';
 import {
   distanceLabel,
+  findCurrentPosition,
   getShelf,
   shelfQueryKey,
   soonestExpiryLabel,
@@ -33,16 +39,39 @@ export function ShelfPage() {
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState<ProductCategory | undefined>();
   const [urgency, setUrgency] = useState<SurplusUrgency | undefined>();
+  const [origin, setOrigin] = useState<{ lat: number; lng: number } | null>(
+    null,
+  );
+  const [locating, setLocating] = useState(false);
+  const [locationRefused, setLocationRefused] = useState(false);
 
   const filters = useMemo<ShelfFilters>(
     () => ({
       q: search.trim() || undefined,
       category,
       urgency,
+      lat: origin?.lat,
+      lng: origin?.lng,
+      sort: origin ? SurplusPackageSort.Distance : undefined,
       limit: 20,
     }),
-    [search, category, urgency],
+    [search, category, urgency, origin],
   );
+
+  const locate = async () => {
+    setLocating(true);
+    setLocationRefused(false);
+
+    const position = await findCurrentPosition();
+
+    if (position === null) {
+      setLocationRefused(true);
+    } else {
+      setOrigin(position);
+    }
+
+    setLocating(false);
+  };
 
   const shelf = useQuery({
     queryKey: shelfQueryKey(filters),
@@ -105,10 +134,30 @@ export function ShelfPage() {
       </div>
 
       {!shelf.isPending && shelf.data && !shelf.data.hasOrigin && (
-        <p className="mb-3 rounded-xl border border-border-tan bg-surface-cream px-3 py-2 text-[11px] leading-relaxed text-brand-brown/80">
-          Your organisation has no coordinates saved, so these are not sorted by
-          distance. Add them in your profile to see the nearest shops first.
-        </p>
+        <div className="mb-3 rounded-xl border border-border-tan bg-surface-cream px-3 py-2.5">
+          <p className="text-[11px] leading-relaxed text-brand-brown/80">
+            These are not sorted by distance yet. Share where you are, or save a
+            collection base in your profile.
+          </p>
+          <button
+            onClick={() => void locate()}
+            disabled={locating}
+            className="mt-2 flex items-center gap-1.5 rounded-lg border border-border-tan bg-white px-2.5 py-1.5 text-[11px] font-semibold text-brand-brown transition hover:bg-surface-cream disabled:opacity-60"
+          >
+            {locating ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Crosshair className="h-3.5 w-3.5" />
+            )}
+            Find shops near me
+          </button>
+          {locationRefused && (
+            <p className="mt-1.5 text-[11px] text-brand-brown/70">
+              Your browser did not share a position. The list below still shows
+              everything available.
+            </p>
+          )}
+        </div>
       )}
 
       {shelf.isPending && (

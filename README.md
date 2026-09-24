@@ -100,10 +100,14 @@ rejected token returning to sign-in.
 verified against the deployed API — server-side search, category and urgency
 facets, and cursor paging that appends.
 
-**NGO:** claims with the handover pass, and the surplus shelf with the claim flow,
-are ported and verified against the deployed API. The pass renders a *real* QR
-encoding of the pickup token — the prototype's was a decorative pattern derived from
-the code's characters and would never have scanned.
+**NGO:** claims with the handover pass, the surplus shelf and its claim flow, the
+collection history, and the organisation profile are all ported and verified against
+the deployed API. The pass renders a *real* QR encoding of the pickup token — the
+prototype's was a decorative pattern derived from the code's characters and would
+never have scanned.
 
-Still to port: the retailer's Profile, and the NGO's collection history, store map
-and profile.
+Distances work end to end: a branch pins its coordinates during setup, an NGO saves
+a collection base, and the shelf measures between them. Either side can use the
+browser's position instead of typing coordinates.
+
+Still to port: the retailer's Profile, and the NGO's store map.

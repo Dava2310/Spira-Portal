@@ -153,6 +153,38 @@ export function soonestExpiryLabel(hours: number | null): string | null {
   return days === 1 ? '1 day left' : `${days} days left`;
 }
 
+/**
+ * Asks the browser where the van is now.
+ *
+ * The shelf takes an explicit origin, so the nearest shops can be found without any
+ * setup at all — which matters because a driver's useful origin is wherever they are
+ * standing, not a saved depot address.
+ * @returns A Promise that resolves with a position, or null when it is unavailable
+ * or refused.
+ */
+export const findCurrentPosition = async (): Promise<{
+  lat: number;
+  lng: number;
+} | null> => {
+  if (!('geolocation' in navigator)) {
+    return null;
+  }
+
+  return await new Promise((resolve) => {
+    navigator.geolocation.getCurrentPosition(
+      (position) =>
+        resolve({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        }),
+      // Refusing is an ordinary answer, not a fault: the shelf still works
+      // unsorted, so this resolves rather than rejects.
+      () => resolve(null),
+      { timeout: 10000, maximumAge: 300000 },
+    );
+  });
+};
+
 // --- 3. API CALLS ---
 
 /**
