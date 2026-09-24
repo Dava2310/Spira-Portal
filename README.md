@@ -114,4 +114,9 @@ browser's position instead of typing coordinates.
 from it — with plain warnings when the branch has published no collection windows or
 is not pinned on the map, since both silently cost it collections.
 
-Still to port: the NGO's store map.
+**Map** puts the same shelf data on a Leaflet map, with a pin per shop labelled by
+how many lots it has. It says how many shops it had to leave off for want of
+coordinates rather than quietly showing fewer pins than the list has rows.
+
+Every screen from both prototypes is now ported. `mockData.ts` is not carried over in
+any form — the API is the only source.

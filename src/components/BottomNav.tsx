@@ -3,6 +3,7 @@ import {
   Gift,
   Home,
   Package,
+  Map,
   Store,
   UserCircle,
   type LucideIcon,
@@ -33,6 +34,7 @@ const ITEMS: Record<PortalSide, NavItem[]> = {
   ngo: [
     { to: '/ngo', label: 'Claims', icon: Home },
     { to: '/ngo/shelf', label: 'Available', icon: Store },
+    { to: '/ngo/map', label: 'Map', icon: Map },
     { to: '/ngo/history', label: 'Collected', icon: FileCheck },
     { to: '/ngo/profile', label: 'Profile', icon: UserCircle },
   ],

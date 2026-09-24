@@ -12,6 +12,7 @@ import { ProfilePage } from '@/routes/retailer/ProfilePage';
 import { DonationsPage } from '@/routes/retailer/DonationsPage';
 import { NgoHome } from '@/routes/ngo/NgoHome';
 import { NgoHistoryPage } from '@/routes/ngo/NgoHistoryPage';
+import { NgoMapPage } from '@/routes/ngo/NgoMapPage';
 import { NgoProfilePage } from '@/routes/ngo/NgoProfilePage';
 import { ShelfPage } from '@/routes/ngo/ShelfPage';
 import { StorePage } from '@/routes/ngo/StorePage';
@@ -58,6 +59,7 @@ export default function App() {
           <Route index element={<NgoHome />} />
           <Route path="shelf" element={<ShelfPage />} />
           <Route path="shelf/:locationId" element={<StorePage />} />
+          <Route path="map" element={<NgoMapPage />} />
           <Route path="history" element={<NgoHistoryPage />} />
           <Route path="profile" element={<NgoProfilePage />} />
         </Route>

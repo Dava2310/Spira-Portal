@@ -30,6 +30,10 @@ export interface ShelfPackageVM {
   /** Straight from the API, which knows the origin the search was run from. */
   distanceKm: number | null;
 
+  /** Both null until the shop pins itself, which is what the map needs. */
+  latitude: number | null;
+  longitude: number | null;
+
   availableCount: number;
   totalWeightKg: number;
   totalValue: number;
@@ -105,6 +109,8 @@ export const toShelfPackageVM = (
   city: dto.city,
   phone: dto.phone ?? null,
   distanceKm: dto.distanceKm ?? null,
+  latitude: dto.latitude ?? null,
+  longitude: dto.longitude ?? null,
   availableCount: dto.availableCount,
   totalWeightKg: dto.totalWeightKg,
   totalValue: dto.totalValue,
