@@ -13,6 +13,8 @@ import {
 import { useState } from 'react';
 
 import { useAuth } from '@/auth/useAuth';
+import { ChangePasswordCard } from '@/components/ChangePasswordCard';
+import { PickupWindowsCard } from '@/components/PickupWindowsCard';
 import {
   getPartners,
   getRetailerImpact,
@@ -126,6 +128,8 @@ export function ProfilePage() {
         )}
       </div>
 
+      {locationId !== '' && <PickupWindowsCard locationId={locationId} />}
+
       <div className={card}>
         <p className={heading}>
           <Sparkles className="h-3.5 w-3.5" />
@@ -230,6 +234,8 @@ export function ProfilePage() {
           />
         </dl>
       </div>
+
+      <ChangePasswordCard />
     </section>
   );
 }

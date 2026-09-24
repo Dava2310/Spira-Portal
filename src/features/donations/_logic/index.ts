@@ -267,3 +267,179 @@ export const getDonation = async (id: string): Promise<DonationVM> => {
     throwError(error, 'Could not load that donation.');
   }
 };
+
+// --- 4. THE RETAILER'S SIDE OF THE LIFECYCLE ---
+
+/**
+ * Stages lots into the branch's open basket, creating it when there is none.
+ *
+ * One call for what the prototype spread across three buttons: a branch has at most
+ * one basket, so adding to it is the same action whether or not it already existed.
+ * @param input The branch, the lots, and the partner to offer them to.
+ * @returns A Promise that resolves with the basket.
+ */
+export const stageLots = async (input: {
+  locationId: string;
+  inventoryItemIds: string[];
+  recipientId?: string;
+}): Promise<DonationVM> => {
+  try {
+    const response =
+      await apiClient.donations.donationsControllerAddToOpenDonation({
+        addLinesToOpenDonationDto: input,
+      });
+
+    return toDonationVM(response.data);
+  } catch (error) {
+    throwError(error, 'Could not add those lots to the batch.');
+  }
+};
+
+/**
+ * Offers a staged basket to its partner, with the window being proposed.
+ * @param id The donation to offer.
+ * @param window The collection window being proposed, when there is one.
+ * @returns A Promise that resolves with the offered donation.
+ */
+export const offerDonation = async (
+  id: string,
+  window?: { start: string; end: string },
+): Promise<DonationVM> => {
+  try {
+    const response = await apiClient.donations.donationsControllerOffer({
+      id,
+      offerDonationDto: window
+        ? { pickupWindowStart: window.start, pickupWindowEnd: window.end }
+        : {},
+    });
+
+    return toDonationVM(response.data);
+  } catch (error) {
+    throwError(error, 'Could not offer that batch.');
+  }
+};
+
+/**
+ * Marks a batch as crated up and waiting by the door.
+ * @param id The donation.
+ * @returns A Promise that resolves with the updated donation.
+ */
+export const markReadyForPickup = async (id: string): Promise<DonationVM> => {
+  try {
+    const response =
+      await apiClient.donations.donationsControllerMarkReadyForPickup({ id });
+
+    return toDonationVM(response.data);
+  } catch (error) {
+    throwError(error, 'Could not mark that batch ready.');
+  }
+};
+
+/**
+ * Issues the pass the collecting organization presents.
+ *
+ * Short-lived on purpose, so a pass photographed once cannot be reused days later.
+ * Issuing again replaces the previous one.
+ * @param id The donation.
+ * @returns A Promise that resolves with the code and PIN.
+ */
+export const issuePickupToken = async (
+  id: string,
+): Promise<{ code: string; pin: string; expiresAt: Date }> => {
+  try {
+    const response =
+      await apiClient.donations.donationsControllerIssuePickupToken({ id });
+
+    return {
+      code: response.data.code,
+      pin: response.data.pin,
+      expiresAt: new Date(response.data.expiresAt),
+    };
+  } catch (error) {
+    throwError(error, 'Could not issue a collection pass.');
+  }
+};
+
+/** What a presented code turned out to be. */
+export interface PassVerdictVM {
+  valid: boolean;
+  message: string | null;
+  donationId: string | null;
+  code: string | null;
+  recipientName: string | null;
+  recipientIsVerified: boolean;
+  contactPerson: string | null;
+  phone: string | null;
+  vehiclePlate: string | null;
+  lineCount: number | null;
+  totalWeightKg: number | null;
+  estimatedMeals: number | null;
+}
+
+/**
+ * Checks a code or PIN the driver presents, without consuming it.
+ *
+ * Deliberately a verdict rather than an error: "that code is not valid" is a normal
+ * answer at a loading bay, and the person holding the phone needs to read it, not
+ * catch an exception.
+ * @param presented The code or the six-digit PIN.
+ * @returns A Promise that resolves with what it turned out to be.
+ */
+export const verifyPass = async (presented: string): Promise<PassVerdictVM> => {
+  try {
+    const response =
+      await apiClient.donations.donationsControllerVerifyPickupToken({
+        verifyPickupTokenDto: { code: presented.trim() },
+      });
+
+    const dto = response.data;
+
+    return {
+      valid: dto.valid,
+      message: dto.message ?? null,
+      donationId: dto.donationId ?? null,
+      code: dto.code ?? null,
+      recipientName:
+        dto.recipient?.shortName ?? dto.recipient?.displayName ?? null,
+      recipientIsVerified: dto.recipient?.isVerified ?? false,
+      contactPerson: dto.recipient?.contactPerson ?? null,
+      phone: dto.recipient?.phone ?? null,
+      vehiclePlate: dto.recipient?.vehiclePlate ?? null,
+      lineCount: dto.summary?.lineCount ?? null,
+      totalWeightKg: dto.summary?.totalWeightKg ?? null,
+      estimatedMeals: dto.summary?.estimatedMeals ?? null,
+    };
+  } catch (error) {
+    throwError(error, 'Could not check that code.');
+  }
+};
+
+/**
+ * Completes the handover, which consumes the pass and issues the certificate.
+ * @param id The donation being handed over.
+ * @param pickupTokenCode The code or PIN that was presented.
+ * @param receivedByLabel Who signed for it, as the certificate should read.
+ * @returns A Promise that resolves with the certificate's number.
+ */
+export const confirmHandover = async (
+  id: string,
+  pickupTokenCode: string,
+  receivedByLabel?: string,
+): Promise<{ receiptId: string; receiptNumber: string }> => {
+  try {
+    const response = await apiClient.donations.donationsControllerConfirm({
+      id,
+      confirmDonationDto: {
+        pickupTokenCode: pickupTokenCode.trim(),
+        receivedByLabel,
+      },
+    });
+
+    return {
+      receiptId: response.data.id,
+      receiptNumber: response.data.receiptNumber,
+    };
+  } catch (error) {
+    throwError(error, 'Could not complete the handover.');
+  }
+};

@@ -1,5 +1,13 @@
-import { useQuery } from '@tanstack/react-query';
-import { Gift, Loader2, Package, ShieldCheck, Truck } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  FileText,
+  Gift,
+  Loader2,
+  Package,
+  QrCode,
+  ShieldCheck,
+  Truck,
+} from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -9,9 +17,12 @@ import { UrgencyBadge } from '@/components/UrgencyBadge';
 import {
   AWAITING_PICKUP_STATUSES,
   donationsQueryKey,
-  linesLabel,
   getDonations,
   getOpenDonation,
+  issuePickupToken,
+  linesLabel,
+  markReadyForPickup,
+  offerDonation,
   openDonationQueryKey,
   STATUS_LABELS,
   type DonationFilters,
@@ -19,6 +30,10 @@ import {
   type DonationVM,
 } from '@/features/donations/_logic';
 import { REASON_LABELS } from '@/features/inventory/_logic';
+import {
+  findReceiptForDonation,
+  openReceiptPdf,
+} from '@/features/receipts/_logic';
 
 type SubView = 'ready' | 'delivered';
 
@@ -72,11 +87,20 @@ export function DonationsPage() {
 
   return (
     <section className="p-4">
-      <header className="mb-3">
-        <h1 className="text-lg font-semibold text-brand-brown">Donations</h1>
-        <p className="mt-0.5 text-xs text-brand-brown/70">
-          Stock staged for collection, and what has already been handed over.
-        </p>
+      <header className="mb-3 flex items-start justify-between gap-2">
+        <div>
+          <h1 className="text-lg font-semibold text-brand-brown">Donations</h1>
+          <p className="mt-0.5 text-xs text-brand-brown/70">
+            Stock staged for collection, and what has already been handed over.
+          </p>
+        </div>
+        <Link
+          to="/retailer/handover"
+          className="flex shrink-0 items-center gap-1.5 rounded-xl bg-brand-ink px-3 py-2 text-xs font-semibold text-white transition hover:bg-brand-brown"
+        >
+          <QrCode className="h-3.5 w-3.5" />
+          Hand over
+        </Link>
       </header>
 
       <div className="mb-4 flex gap-1 rounded-2xl border border-border-tan bg-white p-1 text-xs">
@@ -177,7 +201,10 @@ function QueueView({
           </h2>
           <div className="space-y-2">
             {collecting.map((item) => (
-              <DonationCard key={item.id} donation={item} />
+              <div key={item.id}>
+                <DonationCard donation={item} />
+                <CollectionActions donation={item} />
+              </div>
             ))}
           </div>
         </div>
@@ -189,12 +216,148 @@ function QueueView({
             Still staging
           </h2>
           <DonationCard donation={staging} />
+          <StagingActions donation={staging} />
           <ul className="mt-2 space-y-2">
             {staging.lines.map((line) => (
               <LineRow key={line.id} line={line} />
             ))}
           </ul>
         </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * The steps that move a staged batch towards collection.
+ *
+ * One button at a time, showing only the next step: a shop assembling crates does not
+ * want a row of verbs, it wants to know what to do now.
+ */
+function StagingActions({ donation }: { donation: DonationVM }) {
+  const queryClient = useQueryClient();
+
+  const refresh = async () => {
+    await queryClient.invalidateQueries({ queryKey: ['donations'] });
+    await queryClient.invalidateQueries({ queryKey: ['retailer'] });
+  };
+
+  const offer = useMutation({
+    mutationFn: () => offerDonation(donation.id),
+    onSuccess: refresh,
+  });
+  const ready = useMutation({
+    mutationFn: () => markReadyForPickup(donation.id),
+    onSuccess: refresh,
+  });
+  const failure = offer.error ?? ready.error;
+  const busy = offer.isPending || ready.isPending;
+
+  const step =
+    donation.status === DonationStatus.Draft
+      ? {
+          label: 'Offer it to the partner',
+          hint: 'They are told, and can accept or decline.',
+          run: () => offer.mutate(),
+        }
+      : donation.status === DonationStatus.Accepted
+        ? {
+            label: 'Mark it ready for collection',
+            hint: 'Do this once the crates are by the door.',
+            run: () => ready.mutate(),
+          }
+        : null;
+
+  return (
+    <div className="mt-2 space-y-2">
+      {step && (
+        <>
+          <button
+            onClick={step.run}
+            disabled={busy}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-amber px-4 py-2.5 text-xs font-semibold text-brand-brown transition hover:bg-brand-amber-hover disabled:opacity-60"
+          >
+            {busy && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+            {step.label}
+          </button>
+          <p className="text-center text-[11px] text-brand-brown/60">
+            {step.hint}
+          </p>
+        </>
+      )}
+
+      {donation.status === DonationStatus.Offered && (
+        <p className="rounded-xl border border-border-tan bg-surface-cream px-3 py-2 text-center text-[11px] leading-relaxed text-brand-brown/80">
+          Offered — waiting for the partner to accept. Nothing to do until they
+          do.
+        </p>
+      )}
+
+      {failure && (
+        <p role="alert" className="text-[11px] text-red-700">
+          {failure instanceof Error ? failure.message : 'That did not work.'}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Issuing the pass for a batch that is sealed and waiting.
+ *
+ * Attached here rather than to the staging card, because a batch leaves the basket
+ * the moment it is marked ready — that is what "sealed" means — and the pass belongs
+ * to the sealed batch, not to one still being filled.
+ */
+function CollectionActions({ donation }: { donation: DonationVM }) {
+  const queryClient = useQueryClient();
+  const [pass, setPass] = useState<{ code: string; pin: string } | null>(null);
+
+  const issue = useMutation({
+    mutationFn: () => issuePickupToken(donation.id),
+    onSuccess: async (result) => {
+      setPass({ code: result.code, pin: result.pin });
+      await queryClient.invalidateQueries({ queryKey: ['donations'] });
+    },
+  });
+
+  return (
+    <div className="mt-2 space-y-2">
+      {pass ? (
+        <div className="rounded-2xl border border-border-tan bg-white p-3 text-center">
+          <p className="text-[11px] font-semibold text-brand-brown/70">
+            Read this to the driver, or let them scan their own pass
+          </p>
+          <p className="mt-1 font-mono text-2xl font-bold tracking-[0.2em] text-brand-ink">
+            {pass.pin}
+          </p>
+          <p className="mt-0.5 font-mono text-[10px] text-brand-brown/60">
+            {pass.code}
+          </p>
+          <Link
+            to="/retailer/handover"
+            className="mt-2 inline-block text-[11px] font-semibold text-brand-brown underline"
+          >
+            Hand it over now
+          </Link>
+        </div>
+      ) : (
+        <button
+          onClick={() => issue.mutate()}
+          disabled={issue.isPending}
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-border-tan px-4 py-2.5 text-xs font-semibold text-brand-brown transition hover:bg-surface-cream disabled:opacity-60"
+        >
+          {issue.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+          Issue a collection pass
+        </button>
+      )}
+
+      {issue.error && (
+        <p role="alert" className="text-[11px] text-red-700">
+          {issue.error instanceof Error
+            ? issue.error.message
+            : 'Could not issue a pass.'}
+        </p>
       )}
     </div>
   );
@@ -315,9 +478,55 @@ function DeliveredView({
           <p className="mt-0.5 text-[11px] text-brand-brown/70">
             {lineSummary(donation)}
           </p>
+          <CertificateButton donation={donation} />
         </li>
       ))}
     </ul>
+  );
+}
+
+/**
+ * Opens the certificate for a completed handover.
+ *
+ * The receipt is looked up by the donation rather than held on it, so this resolves it
+ * on demand — a retailer opening one certificate does not need every certificate
+ * fetched with the list.
+ */
+function CertificateButton({ donation }: { donation: DonationVM }) {
+  const download = useMutation({
+    mutationFn: async () => {
+      const receipt = await findReceiptForDonation(donation.id);
+
+      if (!receipt) {
+        throw new Error('No certificate was issued for this handover.');
+      }
+
+      await openReceiptPdf(receipt.id, receipt.receiptNumber);
+    },
+  });
+
+  return (
+    <>
+      <button
+        onClick={() => download.mutate()}
+        disabled={download.isPending}
+        className="mt-2 flex items-center gap-1.5 rounded-lg border border-border-tan px-2.5 py-1.5 text-[11px] font-semibold text-brand-brown transition hover:bg-surface-cream disabled:opacity-60"
+      >
+        {download.isPending ? (
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        ) : (
+          <FileText className="h-3.5 w-3.5" />
+        )}
+        Certificate
+      </button>
+      {download.error && (
+        <p role="alert" className="mt-1 text-[11px] text-red-700">
+          {download.error instanceof Error
+            ? download.error.message
+            : 'Could not open that certificate.'}
+        </p>
+      )}
+    </>
   );
 }
 

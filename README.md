@@ -118,5 +118,13 @@ is not pinned on the map, since both silently cost it collections.
 how many lots it has. It says how many shops it had to leave off for want of
 coordinates rather than quietly showing fewer pins than the list has rows.
 
-Every screen from both prototypes is now ported. `mockData.ts` is not carried over in
-any form — the API is the only source.
+Every screen from both prototypes is ported, and every action behind them is wired:
+a shop logs surplus, publishes it, stages a batch, offers it, seals it and hands it
+over against a PIN; an organisation browses, claims, accepts an offer, collects and
+downloads its certificates. `mockData.ts` is not carried over in any form — the API is
+the only source.
+
+The one thing deliberately left out is the "AI" both prototypes advertised. Neither
+imported `@google/genai`; both were client-side filters behind a timed spinner. The
+NGO's urgent-alerts panel is now real, reading `GET /api/recipients/me/alerts/urgent`
+against the radius and threshold that organisation set.

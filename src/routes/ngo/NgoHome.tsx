@@ -11,10 +11,12 @@ import {
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
-import { CancellationReasonCode } from '@/api-client';
+import { CancellationReasonCode, DonationStatus } from '@/api-client';
 import { useAuth } from '@/auth/useAuth';
 import { PickupPass } from '@/components/PickupPass';
 import {
+  acceptOffer,
+  declineOffer,
   dueLabel,
   getReservations,
   releaseReservation,
@@ -193,6 +195,10 @@ function ClaimDetail({ claim }: { claim: ReservationVM }) {
         </p>
       </div>
 
+      {claim.status === DonationStatus.Offered && (
+        <OfferDecision claim={claim} />
+      )}
+
       {claim.pass ? (
         <PickupPass pass={claim.pass} />
       ) : (
@@ -240,6 +246,110 @@ function ClaimDetail({ claim }: { claim: ReservationVM }) {
 
       {releasing && (
         <ReleaseDialog claim={claim} onClose={() => setReleasing(false)} />
+      )}
+    </div>
+  );
+}
+
+/**
+ * Saying yes or no to a batch a shop has offered.
+ *
+ * Shown only while the offer is outstanding. Without it the retailer-push flow dead
+ * ends: a shop can offer a batch, but nobody is coming for it until somebody accepts.
+ */
+function OfferDecision({ claim }: { claim: ReservationVM }) {
+  const queryClient = useQueryClient();
+  const [declining, setDeclining] = useState(false);
+  const [reason, setReason] = useState('');
+
+  const refresh = async () => {
+    await queryClient.invalidateQueries({ queryKey: ['reservations'] });
+    await queryClient.invalidateQueries({ queryKey: ['shelf'] });
+  };
+
+  const accept = useMutation({
+    mutationFn: () => acceptOffer(claim.id),
+    onSuccess: refresh,
+  });
+  const decline = useMutation({
+    mutationFn: () => declineOffer(claim.id, reason.trim() || 'Not needed'),
+    onSuccess: async () => {
+      setDeclining(false);
+      await refresh();
+    },
+  });
+
+  const failure = accept.error ?? decline.error;
+
+  return (
+    <div className="rounded-2xl border border-brand-amber bg-brand-amber/10 p-3.5">
+      <p className="text-xs font-semibold text-brand-ink">
+        {claim.retailerName} is offering this to you
+      </p>
+      <p className="mt-0.5 text-[11px] leading-relaxed text-brand-brown/80">
+        Accept and it is yours to collect. Decline and it goes back on their
+        shelf for somebody else.
+      </p>
+
+      {declining ? (
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            decline.mutate();
+          }}
+          className="mt-3"
+        >
+          <input
+            value={reason}
+            onChange={(event) => setReason(event.target.value)}
+            placeholder="Why, so the shop knows (optional)"
+            className="w-full rounded-xl border border-border-tan px-3 py-2 text-sm text-brand-ink outline-none focus:border-brand-amber"
+          />
+          <div className="mt-2 flex gap-2">
+            <button
+              type="button"
+              onClick={() => setDeclining(false)}
+              className="flex-1 rounded-xl border border-border-tan bg-white py-2 text-xs font-semibold text-brand-brown"
+            >
+              Keep it
+            </button>
+            <button
+              type="submit"
+              disabled={decline.isPending}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-border-tan bg-white py-2 text-xs font-semibold text-brand-brown disabled:opacity-60"
+            >
+              {decline.isPending && (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              )}
+              Decline it
+            </button>
+          </div>
+        </form>
+      ) : (
+        <div className="mt-3 flex gap-2">
+          <button
+            onClick={() => setDeclining(true)}
+            className="flex-1 rounded-xl border border-border-tan bg-white py-2.5 text-xs font-semibold text-brand-brown transition hover:bg-surface-cream"
+          >
+            Decline
+          </button>
+          <button
+            onClick={() => accept.mutate()}
+            disabled={accept.isPending}
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-brand-amber py-2.5 text-xs font-semibold text-brand-brown transition hover:bg-brand-amber-hover disabled:opacity-60"
+          >
+            {accept.isPending && (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            )}
+            Accept it
+          </button>
+        </div>
+      )}
+
+      {failure && (
+        <p role="alert" className="mt-2 text-[11px] text-red-700">
+          {failure instanceof Error ? failure.message : 'That did not work.'}
+        </p>
       )}
     </div>
   );

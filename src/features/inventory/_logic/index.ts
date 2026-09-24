@@ -9,6 +9,7 @@ import {
   InventoryItemStatus,
   ProductCategory,
   SurplusUrgency,
+  UnitOfMeasure,
 } from '@/api-client';
 import { apiClient } from '@/lib/api-client';
 import { throwError } from '@/lib/error-utils';
@@ -268,6 +269,41 @@ export const getFacets = async (
     return response.data;
   } catch (error) {
     throwError(error, 'Could not load the inventory summary.');
+  }
+};
+
+/**
+ * Logs a new stock lot at a branch.
+ *
+ * `expiryKind` is required whenever a date is given, and the API refuses the lot
+ * without it — getting a use-by wrong is the one mistake here that reaches someone's
+ * dinner, so it is asked rather than assumed.
+ * @param input What the lot is, and where.
+ * @returns A Promise that resolves with the created lot.
+ */
+export const createLot = async (input: {
+  locationId: string;
+  productId: string;
+  quantity: number;
+  unit: UnitOfMeasure;
+  weightKg: number;
+  reason: DonationReason;
+  expiresAt?: string;
+  expiryKind?: ExpiryKind;
+  retailValue?: number;
+  unitLabel?: string;
+  reasonDescription?: string;
+  isListed?: boolean;
+}): Promise<LotVM> => {
+  try {
+    const response =
+      await apiClient.inventoryItems.inventoryItemsControllerCreate({
+        createInventoryItemDto: input,
+      });
+
+    return toLotVM(response.data);
+  } catch (error) {
+    throwError(error, 'Could not log that lot.');
   }
 };
 

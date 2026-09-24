@@ -6,6 +6,7 @@ import {
   Loader2,
   MapPin,
   Plus,
+  Sparkles,
   Users,
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
@@ -13,6 +14,7 @@ import { useState } from 'react';
 
 import { ContactType, UrgencyThreshold } from '@/api-client';
 import { useAuth } from '@/auth/useAuth';
+import { ChangePasswordCard } from '@/components/ChangePasswordCard';
 import {
   addNgoContact,
   CONTACT_TYPE_LABELS,
@@ -26,8 +28,12 @@ import {
   updateAlertPreferences,
   URGENCY_THRESHOLD_LABELS,
   verificationPassQueryKey,
+  getNgoImpact,
   getVerificationPass,
+  ngoImpactQueryKey,
+  updateNgoProfile,
   type NgoBaseVM,
+  type NgoProfileVM,
 } from '@/features/ngo-profile/_logic';
 import { findCurrentPosition } from '@/features/shelf/_logic';
 
@@ -147,6 +153,14 @@ export function NgoProfilePage() {
         </div>
       )}
 
+      {data && <OrganisationDetails profile={data} />}
+
+      <ImpactCard />
+
+      {data && <OrganisationDetails profile={data} />}
+
+      <ImpactCard />
+
       {data && <AlertSettings profile={data} />}
 
       <BasesCard
@@ -194,7 +208,254 @@ export function NgoProfilePage() {
           </>
         )}
       </div>
+
+      <ChangePasswordCard />
     </section>
+  );
+}
+
+/**
+ * The organisation's own details, which it may correct itself.
+ *
+ * Read-only until someone chooses to edit, because a profile is mostly something you
+ * look at — turning every field into an input invites accidental changes to a legal
+ * name that appears on certificates.
+ */
+function OrganisationDetails({ profile }: { profile: NgoProfileVM }) {
+  const queryClient = useQueryClient();
+  const [editing, setEditing] = useState(false);
+  const [displayName, setDisplayName] = useState(profile.displayName);
+  const [legalName, setLegalName] = useState(profile.legalName ?? '');
+  const [serviceArea, setServiceArea] = useState(profile.serviceArea ?? '');
+  const [mission, setMission] = useState(profile.mission ?? '');
+
+  const save = useMutation({
+    mutationFn: () =>
+      updateNgoProfile({
+        displayName,
+        legalName: legalName.trim() || undefined,
+        serviceArea: serviceArea.trim() || undefined,
+        mission: mission.trim() || undefined,
+      }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ngoProfileQueryKey });
+      await queryClient.invalidateQueries({ queryKey: ['session'] });
+      setEditing(false);
+    },
+  });
+
+  return (
+    <div className={card}>
+      <p className={heading}>
+        <Building2 className="h-3.5 w-3.5" />
+        Your organisation
+      </p>
+
+      {editing ? (
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            save.mutate();
+          }}
+        >
+          <label className="block text-xs font-medium text-brand-brown/80">
+            Name shops see
+            <input
+              required
+              value={displayName}
+              onChange={(event) => setDisplayName(event.target.value)}
+              className={field}
+            />
+          </label>
+          <label className="mt-3 block text-xs font-medium text-brand-brown/80">
+            Registered name <span className="font-normal">(optional)</span>
+            <input
+              value={legalName}
+              onChange={(event) => setLegalName(event.target.value)}
+              className={field}
+            />
+          </label>
+          <p className="mt-1 text-[11px] text-brand-brown/60">
+            This is what appears on donation certificates.
+          </p>
+          <label className="mt-3 block text-xs font-medium text-brand-brown/80">
+            Area you serve <span className="font-normal">(optional)</span>
+            <input
+              value={serviceArea}
+              onChange={(event) => setServiceArea(event.target.value)}
+              className={field}
+            />
+          </label>
+          <label className="mt-3 block text-xs font-medium text-brand-brown/80">
+            What you do <span className="font-normal">(optional)</span>
+            <textarea
+              rows={2}
+              value={mission}
+              onChange={(event) => setMission(event.target.value)}
+              className={field}
+            />
+          </label>
+
+          {save.error && (
+            <p role="alert" className="mt-2 text-[11px] text-red-700">
+              {save.error instanceof Error
+                ? save.error.message
+                : 'Could not save your details.'}
+            </p>
+          )}
+
+          <div className="mt-3 flex gap-2">
+            <button
+              type="button"
+              onClick={() => setEditing(false)}
+              className="flex-1 rounded-xl border border-border-tan py-2 text-xs font-semibold text-brand-brown"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={save.isPending}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-brand-amber py-2 text-xs font-semibold text-brand-brown disabled:opacity-60"
+            >
+              {save.isPending && (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              )}
+              Save
+            </button>
+          </div>
+        </form>
+      ) : (
+        <>
+          <dl className="space-y-1 text-[11px]">
+            <Row label="Name shops see" value={profile.displayName} />
+            <Row label="Registered name" value={profile.legalName} />
+            <Row label="Area served" value={profile.serviceArea} />
+            <Row label="Tax ID" value={profile.taxId} />
+            <Row label="Registration" value={profile.registrationCode} />
+          </dl>
+          {profile.mission && (
+            <p className="mt-2 text-[11px] leading-relaxed text-brand-brown/70">
+              {profile.mission}
+            </p>
+          )}
+          <button
+            onClick={() => setEditing(true)}
+            className="mt-2.5 text-[11px] font-semibold text-brand-brown underline"
+          >
+            Edit these details
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
+function Row({
+  label: name,
+  value,
+}: {
+  label: string;
+  value: string | null | undefined;
+}) {
+  return (
+    <div className="flex items-baseline justify-between gap-3">
+      <dt className="shrink-0 text-brand-brown/60">{name}</dt>
+      <dd className="min-w-0 truncate text-right font-medium text-brand-ink">
+        {value ?? '—'}
+      </dd>
+    </div>
+  );
+}
+
+/** What this organisation has collected, over a chosen period. */
+function ImpactCard() {
+  const now = new Date();
+  const thisYear = String(now.getFullYear());
+  const thisMonth = `${thisYear}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const [period, setPeriod] = useState<string | undefined>(thisYear);
+
+  const impact = useQuery({
+    queryKey: ngoImpactQueryKey(period),
+    queryFn: () => getNgoImpact(period),
+  });
+
+  return (
+    <div className={card}>
+      <p className={heading}>
+        <Sparkles className="h-3.5 w-3.5" />
+        Food rescued
+      </p>
+
+      <div className="mb-3 flex gap-1 rounded-xl border border-border-tan p-1 text-[11px]">
+        {[
+          { value: thisMonth, label: 'This month' },
+          { value: thisYear, label: 'This year' },
+          { value: undefined, label: 'All time' },
+        ].map((option) => (
+          <button
+            key={option.label}
+            onClick={() => setPeriod(option.value)}
+            aria-pressed={period === option.value}
+            className={`flex-1 rounded-lg py-1.5 font-semibold transition ${
+              period === option.value
+                ? 'bg-brand-amber text-brand-brown'
+                : 'text-brand-brown/70 hover:text-brand-brown'
+            }`}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+
+      {impact.isPending ? (
+        <p className="flex items-center gap-2 py-2 text-[11px] text-brand-brown/60">
+          <Loader2 className="h-3 w-3 animate-spin" /> Loading…
+        </p>
+      ) : impact.error ? (
+        <p role="alert" className="text-[11px] text-red-700">
+          {impact.error instanceof Error
+            ? impact.error.message
+            : 'Could not load your impact report.'}
+        </p>
+      ) : (
+        impact.data && (
+          <>
+            <div className="grid grid-cols-3 divide-x divide-border-tan text-center">
+              <Metric
+                value={`${impact.data.totalWeightKg} kg`}
+                label="Collected"
+              />
+              <Metric
+                value={`~${Math.round(impact.data.totalMeals)}`}
+                label="Meals"
+              />
+              <Metric
+                value={String(impact.data.donationCount)}
+                label={impact.data.donationCount === 1 ? 'Pickup' : 'Pickups'}
+              />
+            </div>
+            <p className="mt-2.5 border-t border-border-tan/60 pt-2.5 text-[10px] leading-relaxed text-brand-brown/60">
+              {impact.data.periodLabel} · from {impact.data.partnerCount}{' '}
+              {impact.data.partnerCount === 1 ? 'shop' : 'shops'}. Meals
+              reckoned at {impact.data.impactFactor.mealsPerKg} per kg.
+            </p>
+          </>
+        )
+      )}
+    </div>
+  );
+}
+
+function Metric({ value, label: name }: { value: string; label: string }) {
+  return (
+    <div className="px-1">
+      <span className="text-sm font-bold tracking-tight text-brand-ink">
+        {value}
+      </span>
+      <p className="mt-0.5 text-[10px] font-medium leading-tight text-brand-brown/70">
+        {name}
+      </p>
+    </div>
   );
 }
 

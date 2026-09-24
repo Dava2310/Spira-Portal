@@ -268,3 +268,42 @@ export const getShelfPackage = async (
     throwError(error, 'Could not load that store.');
   }
 };
+
+export const urgentAlertsQueryKey = (maxHoursLeft?: number) =>
+  ['shelf', 'urgent', maxHoursLeft ?? null] as const;
+
+/**
+ * Reads the urgent surplus alerts, using the organization's saved preferences.
+ *
+ * The same shape as the shelf, narrowed by the radius and urgency threshold the
+ * organization set on its profile — so this is the shelf as that organization asked
+ * to be told about it, not a second ranking invented here.
+ * @param maxHoursLeft Only lots with less than this long left.
+ * @returns A Promise that resolves with the alerting stores.
+ */
+export const getUrgentAlerts = async (
+  maxHoursLeft?: number,
+): Promise<ShelfPageVM> => {
+  try {
+    const response =
+      await apiClient.recipientPortal.recipientPortalControllerFindUrgentAlerts(
+        {
+          maxHoursLeft,
+        },
+      );
+
+    const body = response.data;
+
+    return {
+      packages: body.data.map(toShelfPackageVM),
+      lotsInRange: body.meta.totalPackages,
+      lotsMatching: body.meta.filteredPackages,
+      storesMatching: body.meta.total,
+      nextCursor: body.meta.nextCursor ?? null,
+      radiusKm: body.meta.radiusKm,
+      hasOrigin: body.meta.originLatitude !== null,
+    };
+  } catch (error) {
+    throwError(error, 'Could not load your urgent alerts.');
+  }
+};

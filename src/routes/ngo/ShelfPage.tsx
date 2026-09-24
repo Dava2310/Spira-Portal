@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import {
+  AlertTriangle,
   Crosshair,
   Loader2,
   MapPin,
@@ -21,11 +22,13 @@ import {
   distanceLabel,
   findCurrentPosition,
   getShelf,
+  getUrgentAlerts,
   shelfQueryKey,
   soonestExpiryLabel,
   type ShelfFilters,
   type ShelfPackageVM,
   type ShelfPageVM,
+  urgentAlertsQueryKey,
 } from '@/features/shelf/_logic';
 
 /**
@@ -76,6 +79,14 @@ export function ShelfPage() {
   const shelf = useQuery({
     queryKey: shelfQueryKey(filters),
     queryFn: () => getShelf(filters),
+  });
+
+  // The alerts feed, which the API narrows by the radius and urgency threshold this
+  // organization set on its own profile — so it is the shelf as they asked to be told
+  // about it, not a second ranking invented here.
+  const alerts = useQuery({
+    queryKey: urgentAlertsQueryKey(24),
+    queryFn: () => getUrgentAlerts(24),
   });
 
   return (
@@ -132,6 +143,43 @@ export function ShelfPage() {
           </Chip>
         ))}
       </div>
+
+      {alerts.data && alerts.data.packages.length > 0 && (
+        <div className="mb-4 rounded-2xl border border-urgency-critical/30 bg-urgency-critical/5 p-3">
+          <p className="flex items-center gap-1.5 text-[11px] font-semibold text-urgency-critical">
+            <AlertTriangle className="h-3.5 w-3.5" />
+            Going off within a day
+          </p>
+          <p className="mt-1 text-[11px] leading-relaxed text-brand-brown/80">
+            {alerts.data.lotsMatching}{' '}
+            {alerts.data.lotsMatching === 1 ? 'lot' : 'lots'} at{' '}
+            {alerts.data.storesMatching}{' '}
+            {alerts.data.storesMatching === 1 ? 'shop' : 'shops'} within{' '}
+            {alerts.data.radiusKm} km. These are the ones that go in the bin if
+            nobody comes.
+          </p>
+          <ul className="mt-2 space-y-1.5">
+            {alerts.data.packages.slice(0, 3).map((item) => (
+              <li key={item.locationId}>
+                <Link
+                  to={`/ngo/shelf/${item.locationId}`}
+                  className="flex items-center justify-between gap-2 rounded-xl border border-border-tan bg-white px-2.5 py-2 text-[11px] transition hover:border-brand-amber"
+                >
+                  <span className="min-w-0 truncate font-semibold text-brand-ink">
+                    {item.retailerName}
+                  </span>
+                  <span className="shrink-0 text-brand-brown/70">
+                    {item.availableCount}{' '}
+                    {item.availableCount === 1 ? 'lot' : 'lots'}
+                    {soonestExpiryLabel(item.earliestExpiryHoursLeft) &&
+                      ` · ${soonestExpiryLabel(item.earliestExpiryHoursLeft)}`}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {!shelf.isPending && shelf.data && !shelf.data.hasOrigin && (
         <div className="mb-3 rounded-xl border border-border-tan bg-surface-cream px-3 py-2.5">

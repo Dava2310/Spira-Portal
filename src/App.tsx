@@ -7,7 +7,9 @@ import { PortalShell } from '@/components/PortalShell';
 import { LoginPage } from '@/routes/login/LoginPage';
 import { RequireBranch } from '@/routes/retailer/RequireBranch';
 import { BranchSetupPage } from '@/routes/retailer/BranchSetupPage';
+import { HandoverPage } from '@/routes/retailer/HandoverPage';
 import { InventoryPage } from '@/routes/retailer/InventoryPage';
+import { LogLotPage } from '@/routes/retailer/LogLotPage';
 import { ProfilePage } from '@/routes/retailer/ProfilePage';
 import { DonationsPage } from '@/routes/retailer/DonationsPage';
 import { NgoHome } from '@/routes/ngo/NgoHome';
@@ -50,6 +52,8 @@ export default function App() {
             <Route path="inventory" element={<InventoryPage />} />
             <Route path="donations" element={<DonationsPage />} />
             <Route path="profile" element={<ProfilePage />} />
+            <Route path="log" element={<LogLotPage />} />
+            <Route path="handover" element={<HandoverPage />} />
           </Route>
         </Route>
       </Route>

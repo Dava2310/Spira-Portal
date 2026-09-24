@@ -1,6 +1,21 @@
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
-import { Loader2, PackageSearch, Search } from 'lucide-react';
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
+import {
+  Check,
+  Eye,
+  EyeOff,
+  Gift,
+  Loader2,
+  PackageSearch,
+  Plus,
+  Search,
+} from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 
 import {
   InventoryItemStatus,
@@ -9,10 +24,12 @@ import {
 } from '@/api-client';
 import { useAuth } from '@/auth/useAuth';
 import { UrgencyBadge } from '@/components/UrgencyBadge';
+import { stageLots } from '@/features/donations/_logic';
 import {
   CATEGORY_LABELS,
   EXPIRY_KIND_LABELS,
   expiryPhrase,
+  setLotListed,
   facetsQueryKey,
   getFacets,
   getLots,
@@ -36,9 +53,45 @@ export function InventoryPage() {
   const { session } = useAuth();
   const locationId = session?.primaryLocationId ?? '';
 
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState<ProductCategory | undefined>();
   const [urgency, setUrgency] = useState<SurplusUrgency | undefined>();
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+
+  const togglePicked = (id: string) => {
+    setPicked((current) => {
+      const next = new Set(current);
+
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+
+      return next;
+    });
+  };
+
+  const refreshLots = async () => {
+    await queryClient.invalidateQueries({ queryKey: ['inventory'] });
+    await queryClient.invalidateQueries({ queryKey: ['donations'] });
+    await queryClient.invalidateQueries({ queryKey: ['retailer'] });
+  };
+
+  const publish = useMutation({
+    mutationFn: ({ id, listed }: { id: string; listed: boolean }) =>
+      setLotListed(id, listed),
+    onSuccess: refreshLots,
+  });
+
+  const stage = useMutation({
+    mutationFn: () => stageLots({ locationId, inventoryItemIds: [...picked] }),
+    onSuccess: async () => {
+      setPicked(new Set());
+      await refreshLots();
+    },
+  });
 
   const filters = useMemo<LotFilters>(
     () => ({
@@ -75,13 +128,22 @@ export function InventoryPage() {
 
   return (
     <section className="p-4">
-      <header className="mb-4">
-        <h1 className="text-lg font-semibold text-brand-brown">Inventory</h1>
-        <p className="mt-0.5 text-xs text-brand-brown/70">
-          {facetsQuery.data
-            ? `${facetsQuery.data.total} lots in stock`
-            : 'Loading…'}
-        </p>
+      <header className="mb-4 flex items-start justify-between gap-2">
+        <div>
+          <h1 className="text-lg font-semibold text-brand-brown">Inventory</h1>
+          <p className="mt-0.5 text-xs text-brand-brown/70">
+            {facetsQuery.data
+              ? `${facetsQuery.data.total} lots in stock`
+              : 'Loading…'}
+          </p>
+        </div>
+        <Link
+          to="/retailer/log"
+          className="flex shrink-0 items-center gap-1.5 rounded-xl bg-brand-amber px-3 py-2 text-xs font-semibold text-brand-brown transition hover:bg-brand-amber-hover"
+        >
+          <Plus className="h-3.5 w-3.5" />
+          Log surplus
+        </Link>
       </header>
 
       <div className="relative mb-3">
@@ -170,9 +232,49 @@ export function InventoryPage() {
 
       <ul className="space-y-2">
         {lots.map((lot) => (
-          <LotRow key={lot.id} lot={lot} />
+          <LotRow
+            key={lot.id}
+            lot={lot}
+            picked={picked.has(lot.id)}
+            onToggle={() => togglePicked(lot.id)}
+            onPublish={() =>
+              publish.mutate({ id: lot.id, listed: !lot.isListed })
+            }
+            isPublishing={publish.isPending}
+          />
         ))}
       </ul>
+
+      {(publish.error ?? stage.error) && (
+        <p
+          role="alert"
+          className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-xs text-red-700"
+        >
+          {(publish.error ?? stage.error) instanceof Error
+            ? (publish.error ?? stage.error)!.message
+            : 'That did not work.'}
+        </p>
+      )}
+
+      {picked.size > 0 && (
+        <div className="fixed inset-x-0 bottom-[3.75rem] z-40 mx-auto max-w-md border-t border-border-tan bg-white/95 p-3 backdrop-blur">
+          <button
+            onClick={() => stage.mutate()}
+            disabled={stage.isPending}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-amber px-4 py-3 text-sm font-semibold text-brand-brown transition hover:bg-brand-amber-hover disabled:opacity-60"
+          >
+            {stage.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Gift className="h-4 w-4" />
+            )}
+            Add {picked.size} {picked.size === 1 ? 'lot' : 'lots'} to the batch
+          </button>
+          <p className="mt-1.5 text-center text-[11px] text-brand-brown/60">
+            They move to Donations, where you offer them and hand them over.
+          </p>
+        </div>
+      )}
 
       {lotsQuery.hasNextPage && (
         <button
@@ -216,11 +318,40 @@ function Chip({
   );
 }
 
-function LotRow({ lot }: { lot: LotVM }) {
+function LotRow({
+  lot,
+  picked,
+  onToggle,
+  onPublish,
+  isPublishing,
+}: {
+  lot: LotVM;
+  picked: boolean;
+  onToggle: () => void;
+  onPublish: () => void;
+  isPublishing: boolean;
+}) {
   const phrase = expiryPhrase(lot);
 
   return (
-    <li className="flex items-start gap-3 rounded-2xl border border-border-tan p-3">
+    <li
+      className={`flex items-start gap-3 rounded-2xl border p-3 transition ${
+        picked ? 'border-brand-amber bg-brand-amber/10' : 'border-border-tan'
+      }`}
+    >
+      <button
+        onClick={onToggle}
+        aria-pressed={picked}
+        aria-label={picked ? 'Deselect this lot' : 'Select this lot to donate'}
+        className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition ${
+          picked
+            ? 'border-brand-amber bg-brand-amber text-brand-brown'
+            : 'border-border-tan'
+        }`}
+      >
+        {picked && <Check className="h-3.5 w-3.5" />}
+      </button>
+
       {lot.imageUrl ? (
         <img
           src={lot.imageUrl}
@@ -260,12 +391,27 @@ function LotRow({ lot }: { lot: LotVM }) {
               · {phrase}
             </span>
           )}
-          {lot.isListed && (
-            <span className="rounded bg-brand-amber/20 px-1.5 py-0.5 font-medium text-brand-brown">
-              on the shelf
-            </span>
-          )}
         </p>
+
+        <button
+          onClick={onPublish}
+          disabled={isPublishing}
+          className={`mt-1.5 flex items-center gap-1.5 rounded-lg border px-2 py-1 text-[10px] font-semibold transition disabled:opacity-60 ${
+            lot.isListed
+              ? 'border-brand-amber bg-brand-amber/20 text-brand-brown'
+              : 'border-border-tan text-brand-brown/70 hover:bg-surface-cream'
+          }`}
+        >
+          {lot.isListed ? (
+            <>
+              <Eye className="h-3 w-3" /> On the shelf — withdraw
+            </>
+          ) : (
+            <>
+              <EyeOff className="h-3 w-3" /> Not published — publish
+            </>
+          )}
+        </button>
       </div>
     </li>
   );

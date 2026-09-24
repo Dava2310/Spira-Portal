@@ -111,6 +111,32 @@ export const getPickups = async (cursor?: string): Promise<ReceiptPageVM> => {
 };
 
 /**
+ * Finds the certificate issued for one donation.
+ *
+ * Matched from the caller's own certificate list, because there is no by-donation
+ * route and the list is already scoped to them. Fine while a branch has tens of
+ * handovers; a route would be better once it has thousands.
+ * @param donationId The handover to find the certificate for.
+ * @returns A Promise that resolves with the certificate, or null when none exists.
+ */
+export const findReceiptForDonation = async (
+  donationId: string,
+): Promise<ReceiptVM | null> => {
+  try {
+    const response =
+      await apiClient.donationReceipts.donationReceiptsControllerFindAll();
+
+    const match = response.data.find(
+      (receipt) => receipt.donationId === donationId,
+    );
+
+    return match ? toReceiptVM(match) : null;
+  } catch (error) {
+    throwError(error, 'Could not find that certificate.');
+  }
+};
+
+/**
  * Opens a certificate's PDF.
  *
  * Fetched through the client rather than linked to, because the route needs the

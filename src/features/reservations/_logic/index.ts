@@ -354,3 +354,53 @@ export const releaseReservation = async (
     throwError(error, 'Could not release that claim.');
   }
 };
+
+/**
+ * Accepts a batch a shop has offered.
+ *
+ * The retailer-push flow ends here without this: a shop can offer, but until somebody
+ * says yes the crates sit in a draft nobody is coming for. Naming the vehicle and
+ * driver is optional at this point and can be filled in later.
+ * @param id The offered donation.
+ * @param crew The vehicle and driver coming for it, when known.
+ * @returns A Promise that resolves with the accepted claim.
+ */
+export const acceptOffer = async (
+  id: string,
+  crew?: { recipientVehicleId?: string; driverContactId?: string },
+): Promise<ReservationVM> => {
+  try {
+    const response = await apiClient.donations.donationsControllerAccept({
+      id,
+      acceptDonationDto: crew ?? {},
+    });
+
+    // The donation shape and the reservation shape overlap on everything this
+    // screen reads, so the accepted donation is mapped through the same view model.
+    return toReservationVM(
+      response.data as unknown as Parameters<typeof toReservationVM>[0],
+    );
+  } catch (error) {
+    throwError(error, 'Could not accept that offer.');
+  }
+};
+
+/**
+ * Declines a batch a shop has offered, so the stock goes back on their shelf.
+ * @param id The offered donation.
+ * @param declineReason Why, which the shop sees.
+ * @returns A Promise that resolves once it is declined.
+ */
+export const declineOffer = async (
+  id: string,
+  declineReason: string,
+): Promise<void> => {
+  try {
+    await apiClient.donations.donationsControllerDecline({
+      id,
+      declineDonationDto: { declineReason },
+    });
+  } catch (error) {
+    throwError(error, 'Could not decline that offer.');
+  }
+};

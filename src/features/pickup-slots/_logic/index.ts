@@ -82,3 +82,31 @@ export const getPickupSlots = async (
     throwError(error, 'Could not load the collection windows.');
   }
 };
+
+/**
+ * Publishes a collection window for a branch.
+ *
+ * Worth doing: a branch with no published windows forces every organization to
+ * propose a time and wait to hear back, which is the slowest path through the whole
+ * flow.
+ * @param input The branch, the label, the days and the times.
+ * @returns A Promise that resolves with the new slot.
+ */
+export const createPickupSlot = async (input: {
+  locationId: string;
+  label: string;
+  startTime: string;
+  endTime: string;
+  weekday?: number;
+}): Promise<PickupSlotVM> => {
+  try {
+    const response =
+      await apiClient.locationPickupSlots.locationPickupSlotsControllerCreate({
+        createLocationPickupSlotDto: { ...input, isActive: true },
+      });
+
+    return toPickupSlotVM(response.data);
+  } catch (error) {
+    throwError(error, 'Could not publish that window.');
+  }
+};
