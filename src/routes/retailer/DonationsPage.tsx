@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   FileText,
   Gift,
+  RotateCcw,
   Loader2,
   Package,
   QrCode,
@@ -24,6 +25,7 @@ import {
   markReadyForPickup,
   offerDonation,
   openDonationQueryKey,
+  returnLineToInventory,
   STATUS_LABELS,
   type DonationFilters,
   type DonationLineVM,
@@ -219,7 +221,12 @@ function QueueView({
           <StagingActions donation={staging} />
           <ul className="mt-2 space-y-2">
             {staging.lines.map((line) => (
-              <LineRow key={line.id} line={line} />
+              <LineRow
+                key={line.id}
+                line={line}
+                donationId={staging.id}
+                canReturn
+              />
             ))}
           </ul>
         </div>
@@ -530,7 +537,32 @@ function CertificateButton({ donation }: { donation: DonationVM }) {
   );
 }
 
-function LineRow({ line }: { line: DonationLineVM }) {
+function LineRow({
+  line,
+  donationId,
+  canReturn = false,
+}: {
+  line: DonationLineVM;
+  donationId?: string;
+  canReturn?: boolean;
+}) {
+  const queryClient = useQueryClient();
+
+  const putBack = useMutation({
+    mutationFn: async () => {
+      if (!donationId) {
+        throw new Error('Nothing to return it from.');
+      }
+
+      await returnLineToInventory(donationId, line.id);
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['donations'] });
+      await queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      await queryClient.invalidateQueries({ queryKey: ['retailer'] });
+    },
+  });
+
   return (
     <li className="flex items-start gap-3 rounded-2xl border border-border-tan p-3">
       {line.imageUrl ? (
@@ -558,6 +590,30 @@ function LineRow({ line }: { line: DonationLineVM }) {
           {REASON_LABELS[line.reason]}
           {line.reasonDescription && ` · ${line.reasonDescription}`}
         </p>
+
+        {canReturn && (
+          <>
+            <button
+              onClick={() => putBack.mutate()}
+              disabled={putBack.isPending}
+              className="mt-1.5 flex items-center gap-1.5 rounded-lg border border-border-tan px-2 py-1 text-[10px] font-semibold text-brand-brown/70 transition hover:bg-surface-cream disabled:opacity-60"
+            >
+              {putBack.isPending ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <RotateCcw className="h-3 w-3" />
+              )}
+              Put it back in inventory
+            </button>
+            {putBack.error && (
+              <p role="alert" className="mt-1 text-[11px] text-red-700">
+                {putBack.error instanceof Error
+                  ? putBack.error.message
+                  : 'Could not return that lot.'}
+              </p>
+            )}
+          </>
+        )}
       </div>
     </li>
   );

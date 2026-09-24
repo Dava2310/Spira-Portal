@@ -296,6 +296,29 @@ export const stageLots = async (input: {
 };
 
 /**
+ * Takes one lot back out of a staged batch, returning it to inventory.
+ *
+ * The other half of staging: without it, adding a lot to a batch is a one-way door
+ * and a mis-click has to be undone by cancelling the whole batch.
+ * @param donationId The batch to take it out of.
+ * @param lineId The line to remove.
+ * @returns A Promise that resolves once it is back in inventory.
+ */
+export const returnLineToInventory = async (
+  donationId: string,
+  lineId: string,
+): Promise<void> => {
+  try {
+    await apiClient.donations.donationsControllerRemoveLine({
+      id: donationId,
+      lineId,
+    });
+  } catch (error) {
+    throwError(error, 'Could not return that lot to inventory.');
+  }
+};
+
+/**
  * Offers a staged basket to its partner, with the window being proposed.
  * @param id The donation to offer.
  * @param window The collection window being proposed, when there is one.
