@@ -15,6 +15,14 @@
 @theme {
   --font-sans: 'Poppins', ui-sans-serif, system-ui, sans-serif;
 
+  /*
+   * Height of the bottom navigation. Declared once because the action bars on
+   * Inventory and a shop's shelf have to sit exactly above it: both the nav and a
+   * sticky bar clamp to the same scrolling viewport, so the bar cannot work out the
+   * offset for itself and a hardcoded guess drifts the moment the nav changes.
+   */
+  --spacing-nav: 3.75rem;
+
   /* Brand */
   --color-brand-amber: #e7a03c;
   --color-brand-amber-hover: #d6902e;

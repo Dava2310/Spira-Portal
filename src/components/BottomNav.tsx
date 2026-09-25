@@ -53,7 +53,7 @@ export function BottomNav({ side }: { side: PortalSide }) {
   }
 
   return (
-    <nav className="sticky bottom-0 z-40 flex border-t border-border-tan bg-white/95 backdrop-blur">
+    <nav className="sticky bottom-0 z-40 flex h-nav shrink-0 border-t border-border-tan bg-white/95 backdrop-blur">
       {items.map((item) => (
         <NavLink
           key={item.to}
@@ -61,7 +61,7 @@ export function BottomNav({ side }: { side: PortalSide }) {
           // `end` so the index route does not stay highlighted on its children.
           end={item.to === `/${side === 'ngo' ? 'ngo' : 'retailer'}`}
           className={({ isActive }) =>
-            `flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[11px] font-medium transition ${
+            `flex flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition ${
               isActive ? 'text-retailer-accent' : 'text-brand-brown/55'
             }`
           }

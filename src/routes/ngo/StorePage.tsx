@@ -123,7 +123,7 @@ export function StorePage() {
     Math.round(chosen.reduce((sum, lot) => sum + lot.weightKg, 0) * 10) / 10;
 
   return (
-    <section className="p-4 pb-28">
+    <section className="px-4 pb-44 pt-4">
       <Link
         to="/ngo/shelf"
         className="mb-3 inline-flex items-center gap-1 text-xs font-medium text-brand-brown/70"
@@ -180,7 +180,7 @@ export function StorePage() {
       )}
 
       {picked.size > 0 && (
-        <div className="fixed inset-x-0 bottom-0 z-40 mx-auto max-w-md border-t border-border-tan bg-white/95 p-3 backdrop-blur">
+        <div className="fixed inset-x-0 bottom-nav z-30 mx-auto max-w-md border-t border-border-tan bg-white/95 px-4 py-3 backdrop-blur">
           <WhenPicker
             slots={slots.data ?? []}
             slotId={slotId}

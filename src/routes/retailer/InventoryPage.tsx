@@ -127,7 +127,7 @@ export function InventoryPage() {
   });
 
   return (
-    <section className="p-4">
+    <section className="px-4 pb-44 pt-4">
       <header className="mb-4 flex items-start justify-between gap-2">
         <div>
           <h1 className="text-lg font-semibold text-brand-brown">Inventory</h1>
@@ -256,8 +256,21 @@ export function InventoryPage() {
         </p>
       )}
 
+      {lotsQuery.hasNextPage && (
+        <button
+          onClick={() => void lotsQuery.fetchNextPage()}
+          disabled={lotsQuery.isFetchingNextPage}
+          className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-border-tan py-2.5 text-xs font-semibold text-brand-brown transition hover:bg-surface-cream disabled:opacity-60"
+        >
+          {lotsQuery.isFetchingNextPage && (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          )}
+          Load more ({total - lots.length} remaining)
+        </button>
+      )}
+
       {picked.size > 0 && (
-        <div className="fixed inset-x-0 bottom-[3.75rem] z-40 mx-auto max-w-md border-t border-border-tan bg-white/95 p-3 backdrop-blur">
+        <div className="fixed inset-x-0 bottom-nav z-30 mx-auto max-w-md border-t border-border-tan bg-white/95 px-4 py-3 backdrop-blur">
           <button
             onClick={() => stage.mutate()}
             disabled={stage.isPending}
@@ -274,19 +287,6 @@ export function InventoryPage() {
             They move to Donations, where you offer them and hand them over.
           </p>
         </div>
-      )}
-
-      {lotsQuery.hasNextPage && (
-        <button
-          onClick={() => void lotsQuery.fetchNextPage()}
-          disabled={lotsQuery.isFetchingNextPage}
-          className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-border-tan py-2.5 text-xs font-semibold text-brand-brown transition hover:bg-surface-cream disabled:opacity-60"
-        >
-          {lotsQuery.isFetchingNextPage && (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          )}
-          Load more ({total - lots.length} remaining)
-        </button>
       )}
     </section>
   );
