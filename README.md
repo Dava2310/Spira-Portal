@@ -74,6 +74,25 @@ pnpm lint
 > deployable bundles with the variable set explicitly:
 > `VITE_API_BASE_URL=https://spiraapi.onrender.com pnpm build`.
 
+## Deploying
+
+A static bundle, so any static host works. `vercel.json` rewrites every path to
+`index.html`: the app routes on the client, so without that a refresh on
+`/ngo/shelf/<id>` is a 404 from the host before React ever runs.
+
+Set **one** environment variable on the host:
+
+```
+VITE_API_BASE_URL = https://spiraapi.onrender.com
+```
+
+It must **not** include `/api` — every generated path already carries it. And it is
+inlined at build time, not read at runtime, so changing it needs a fresh deploy
+rather than a restart.
+
+The API currently sets `CORS_ORIGIN=*`, so a new domain works immediately. Tighten it
+to that domain once it is settled.
+
 ## Regenerating the API client
 
 The client is committed so a clone builds without the backend present. After a DTO
